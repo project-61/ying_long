@@ -1,0 +1,16 @@
+[package]
+name = "ying_long"
+license = "MIT"
+version = "0.1.0"
+authors = ["Lyzh <enterindex@gmail.com>"]
+edition = "2018"
+
+description = "This is a Digital Circuits Logic description language"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[featuer]
+trait_alias=true
+
+[dependencies]
+# sexpr_ir = "^0.5.*"
