@@ -1,4 +1,4 @@
-use std::ops::{BitAnd, BitOr, BitXor, Shl, Shr};
+use std::{array, ops::{BitAnd, BitOr, BitXor, Shl, Shr}};
 
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
