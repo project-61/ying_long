@@ -1,8 +1,8 @@
 # YingLong
 
-应龙 (YìngLóng) 是一个数字电路逻辑描述语言
+应龙 (YìngLóng) 数字电路逻辑描述语言
 
-This is a Digital Circuits Logic description language
+The 应龙 (YìngLóng) Digital Circuits Logic description language
 
 ## Numbering
 
