@@ -1,0 +1,95 @@
+
+
+Module = {
+    "mod" ~ symbol ~ var_list ~ ":" ~ var_list ~ module_body
+}
+
+module_body = {
+    "{" ~ body_item* ~ "}"
+}
+
+body_item =
+	{ assign
+	}
+
+assign = { type_anno ~ "=" ~ expr}
+
+expr = { (not_expr|raw_expr) ~ oper* }
+
+op =
+	{ "&"
+    | "|"
+    | "^"
+    | "+"
+    }
+
+oper = {
+	op ~ expr
+}
+
+not_expr = {"!" ~ expr}
+
+raw_expr =
+	{ "expr"
+    | symbol
+    }
+
+var_list = {
+    "(" ~ (type_anno ~ ("," ~ type_anno)*)? ~ ")"
+}
+
+type_anno = { symbol ~ (":" ~ type_)? }
+
+type_ =
+    { reg_type
+    | pin_type
+    | clock_type
+    }
+
+reg_type = {"Reg" ~ size}
+pin_type = {"Pin" ~ size?}
+clock_type = { "Clock" }
+
+size = {"[" ~ number ~ "]"}
+
+symbol = ${ (ASCII_ALPHA_LOWER | UNDERLINE) ~ (ASCII_ALPHANUMERIC | UNDERLINE)* }
+
+UNDERLINE = _{"_"}
+
+keyword = @{ bool_lit }
+
+bool_lit = @{ kw_false | kw_true }
+
+kw_false = _ { "false" }
+kw_true = _ { "true" }
+
+
+float_number = $
+    { (number_hex ~ "." ~ ASCII_HEX_DIGIT+)
+    | (number_oct ~ "." ~ ASCII_OCT_DIGIT+)
+    | (number_bin ~ "." ~ ASCII_BIN_DIGIT+)
+    | (number_dec ~ "." ~ ASCII_DIGIT+)
+}
+
+number = $
+    { number_hex
+    | number_oct
+    | number_bin
+    | number_dec
+    }
+
+number_dec = _ { ("+" | "-")? ~ ASCII_DIGIT+ }
+
+number_oct = _ { ("+" | "-")? ~ "0o" ~ ASCII_OCT_DIGIT+ }
+
+number_hex = _ { ("+" | "-")? ~ "0x" ~ ASCII_HEX_DIGIT+ }
+
+number_bin = _ { ("+" | "-")? ~ "0b" ~ ASCII_BIN_DIGIT+ }
+
+WHITESPACE = _ { " "
+               | "\t"
+               | WHITE_SPACE
+               | NEWLINE
+               }
+
+COMMENT = _ { "//" ~ (!NEWLINE ~ ANY)* ~ NEWLINE? }
