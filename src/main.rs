@@ -1,5 +1,5 @@
-mod datatypes;
-mod hardware;
+mod hgir;
+mod utils;
 
 fn main() {
     println!("Hello, world!");
