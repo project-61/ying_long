@@ -2,7 +2,7 @@ use std::{collections::{HashMap, HashSet}, sync::Arc};
 
 use crate::utils::Symbol;
 
-use super::TriggerType;
+use super::{Pin, TriggerType};
 
 
 

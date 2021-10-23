@@ -9,5 +9,9 @@ description = "This is a Digital Circuits Logic description language"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
+# proc-macro = true
+
 [dependencies]
 lazy_static = "1.4.0"
+# syn = "1.0"
+# quote = "1.0"
