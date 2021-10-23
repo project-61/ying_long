@@ -2,14 +2,14 @@ use std::collections::HashSet;
 
 use crate::utils::Symbol;
 
-use super::TriggerType;
+use super::{Pin, TriggerType};
 
 
 #[derive(Debug, Clone)]
 pub struct Module {
-    pub name: String,
-    pub input: HashSet<Symbol>,
-    pub output: HashSet<Symbol>,
+    pub name: Symbol,
+    pub input: HashSet<Pin>,
+    pub output: HashSet<Pin>,
     pub items: Vec<Hardware>,
 }
 
@@ -51,17 +51,17 @@ pub enum UnaryOp {
 #[derive(Debug, Clone)]
 pub enum BinaryOp {
     Add,
-    Sub,
-    Mul,
-    Div,
-    Mod,
-    LogicAnd,
-    LogicOr,
+    // Sub,
+    // Mul,
+    // Div,
+    // Mod,
+    // LogicAnd,
+    // LogicOr,
     BitAnd,
     BitOr,
     BitXor,
-    BitShiftLeft,
-    BitShiftRight,
+    // BitShiftLeft,
+    // BitShiftRight,
 }
 
 #[derive(Debug, Clone)]

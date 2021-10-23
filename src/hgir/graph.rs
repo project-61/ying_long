@@ -10,18 +10,6 @@ use super::TriggerType;
 
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct Pin(pub Symbol, usize);
-
-impl Pin {
-    pub fn new(size: usize) -> Pin {
-        Pin(todo!(), size)
-    }
-    fn from(i: &str, size: usize) -> Self {
-        Pin(Symbol::from(i), size)
-    }
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Wire(pub Symbol, pub Symbol); // input, output
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -45,7 +33,7 @@ pub struct Trigger(TriggerType, ); // todo
 
 #[derive(Debug, Clone)]
 pub struct Module {
-    pub name: String,
+    pub name: Symbol,
     pub input: HashMap<Symbol, Pin>,
     pub output: HashMap<Symbol, Pin>,
     pub pin_map: HashMap<Symbol, Pin>,
