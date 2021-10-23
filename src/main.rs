@@ -11,14 +11,30 @@ macro_rules! des {
     };
 }
 
+macro_rules! inputs {
+    ($m:ident $(, $exp:ident)*) => {
+        $(
+            let $exp = pin!();
+            $m.input(&$exp);
+        )*
+    };
+}
+
+macro_rules! outputs {
+    ($m:ident $(, $exp:ident)*) => {
+        $(
+            let $exp = pin!();
+            $m.output(&$exp);
+        )*
+    };
+}
+
 fn main() {
     let mut modu = Module::new("main");
-    let a = pin!();
-    let b = pin!();
-    // modu += a << C(1i32);
+    inputs!(modu, a, b);
+    outputs!(modu, c);
     des!(modu
-        b << (C(2i32) | C(4i32))
-        a << C(3i32)
+        c << (a.S() | b.S() | C(2i32))
     );
     println!("Hello, world!");
 }

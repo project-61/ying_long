@@ -22,11 +22,11 @@ impl Module {
             items: Default::default(),
         }
     }
-    pub fn input(&self, pin: Pin) {
-        self.input.write().unwrap().insert(pin);
+    pub fn input(&self, pin: &Pin) {
+        self.input.write().unwrap().insert(pin.clone());
     }
-    pub fn output(&self, pin: Pin) {
-        self.output.write().unwrap().insert(pin);
+    pub fn output(&self, pin: &Pin) {
+        self.output.write().unwrap().insert(pin.clone());
     }
 }
 
@@ -46,6 +46,9 @@ pub enum Hardware {
 impl Pin {
     pub fn assign(self, expr: Expr) -> Hardware {
         Hardware::Assign(self, expr)
+    }
+    pub fn S(self) -> Expr {
+        Expr::Var(self.0)
     }
 }
 
