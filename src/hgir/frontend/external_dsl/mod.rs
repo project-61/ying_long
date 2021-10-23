@@ -1,7 +1,6 @@
-use pest_derive::Parser;
+use pest_derive::*;
 
 
-#[Parser]
-#[grammar="../grammar.pest"]
-pub struct YingLong;
-
+#[derive(Parser)]
+#[grammar = "../grammar.pest"]
+pub struct YingLong();
