@@ -9,7 +9,7 @@ pub struct Symbol(Handle<String>);
 
 impl Symbol {
     pub fn new() -> Self {
-        Symbol(string_intern(&format!("gen_symbol_{}", get_new_id())))
+        Symbol(string_intern(&format!("gen_{}", get_new_id())))
     }
 }
 
