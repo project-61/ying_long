@@ -1,11 +1,11 @@
-use crate::hgir::ast::{C, Expr, Module};
+use crate::hgir::ast::{C, Module};
 
 extern crate proc_macro;
 
 mod hgir;
 mod utils;
 
-macro_rules! des {
+macro_rules! body {
     ($m:ident $($exp:expr)*) => {
         $($m += $exp;)*
     };
@@ -29,14 +29,34 @@ macro_rules! outputs {
     };
 }
 
+macro_rules! module {
+    ($m:ident
+        $(input $($input:ident),+ $(,)?;)?
+        $(output $($output:ident),+ $(,)?;)?
+        // $(reg $($reg:ident:$rego:expr),+ $(,)?;)?
+        body $($x:expr)+) => {
+        let mut $m = Module::new(stringify!(#m));
+        $(inputs!($m $(,$input)+);)?
+        $(outputs!($m $(,$output)+);)?
+        $($m += $x;)+
+    };
+}
+
+fn main_module() -> Module {
+    module!{sig114
+        input a, b, d, e;
+        output c, f;
+        body
+            c << (a.S() | b.S())
+            f << (d.S() + e.S())
+    };
+    sig114
+}
+
 fn main() {
-    let mut modu = Module::new("main");
-    inputs!(modu, a, b);
-    outputs!(modu, c);
-    des!(modu
-        c << (a.S() | b.S() | C(2i32))
-    );
-    println!("Hello, world!");
+    let m = main_module();
+    // m.compile().emit(Verilog::new());
+    println!("make: {:?}", m);
 }
 
 
