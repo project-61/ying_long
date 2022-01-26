@@ -11,6 +11,14 @@ description = "This is a Digital Circuits Logic description language"
 
 # proc-macro = true
 
+[[bin]]
+name = "ying_long"
+path = "src/main.rs"
+
+[lib]
+name = "libyinglong"
+path = "src/lib.rs"
+
 [dependencies]
 lazy_static = "1.4.0"
 # syn = "1.0"
