@@ -5,7 +5,7 @@ fn main() {
     let modu = Module {
         name: "mod114".to_string(),
         pos: None,
-        clock: false,
+        clock: true,
         inputs: vec![Input(PinDef("mem".to_string(), 8, 114514), None), Input(PinDef("mcode".to_string(), 32, 1), None)],
         outputs: vec![],
         assigns: vec![],

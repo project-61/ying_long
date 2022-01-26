@@ -1,3 +1,5 @@
+use std::fmt::Write;
+
 use crate::ylir::Node;
 
 use super::{Module, Pos, Input, Output, PinDef, Reg, Mem};
@@ -9,24 +11,36 @@ pub trait GenVerilog<T: std::fmt::Write> {
 
 impl<T: std::fmt::Write> GenVerilog<T> for Module {
     fn gen_verilog(&self, tabsize: u8, f: &mut T) -> std::fmt::Result {
+        // module header
         write_tab(tabsize, f)?;
-        write!(f, "module {}(\n", self.name)?;
+        write!(f, "module {}(", self.name)?;
+        pos_gen(&self.pos, f)?;
 
+        // module io
         let mut buf = String::new();
         for i in self.inputs.iter() {
             i.gen_verilog(tabsize+1, &mut buf)?;
         }
-        if buf != "" {
+
+        // clock signal
+        if self.clock {
+            write_tab(tabsize+1, &mut buf)?;
+            buf.write_str("input clk,\n")?;
+        }
+
+        if !buf.is_empty() {
             buf.pop();
             buf.pop();
             buf.push('\n');
+            write!(f, "\n")?;
             write!(f, "{}", buf)?;
         }
 
         write_tab(tabsize+1, f)?;
         write!(f, ");\n")?;
 
-
+        // wires
+        // todo
 
         write_tab(tabsize, f)?;
         write!(f, "endmodule")?;
