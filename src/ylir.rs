@@ -16,16 +16,16 @@ pub struct Module {
 }
 
 #[derive(Debug, Clone)]
-pub struct Input(PinDef, Option<Pos>);
+pub struct Input(pub PinDef, pub Option<Pos>);
 
 #[derive(Debug, Clone)]
-pub struct Output(Node, Option<Pos>);
+pub struct Output(pub Node, pub Option<Pos>);
 
 #[derive(Debug, Clone)]
-pub struct ModuleInstance(pub String, pub String, pub Vec<SS>, Option<Pos>);
+pub struct ModuleInstance(pub String, pub String, pub Vec<SS>, pub Option<Pos>);
 
 #[derive(Debug, Clone)]
-pub struct Assign(pub PinDef, pub Operator, Option<Pos>);
+pub struct Assign(pub PinDef, pub Operator, pub Option<Pos>);
 
 /// Signal Source
 #[derive(Debug, Clone)]
@@ -49,16 +49,14 @@ impl Constant {
 #[derive(Debug, Clone)]
 pub enum SS {
     Const(Constant),
-    Pin(Pin),
-    Reg(Reg),
-    Mem(Mem),
+    Var(Var),
 }
 
 #[derive(Debug, Clone)]
-pub struct Pin(pub String, pub String);
+pub struct Var(pub String, pub String);
 
 #[derive(Debug, Clone)]
-pub struct PinDef(pub String, pub usize);
+pub struct PinDef(pub String, pub usize, pub usize);
 
 #[derive(Debug, Clone)]
 pub struct Reg(pub String, pub usize);
