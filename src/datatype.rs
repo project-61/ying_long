@@ -1,4 +1,4 @@
-use std::ops::{BitAnd, BitOr, BitXor};
+use std::ops::{BitAnd, BitOr, BitXor, Not};
 
 
 
@@ -65,3 +65,6 @@ pub const XSTATE: BitValue = BitValue::X;
 // pub const ZSTATE: BitValue = BitValue::Z;
 
 pub type BitVector = Vec<BitValue>;
+
+pub type MemValue = Vec<BitValue>;
+// pub type MemValue = Vec<BitVector>;

@@ -1,21 +1,31 @@
-use crate::datatype::BitVector;
+pub mod ring_check;
+pub mod const_propagate;
+pub mod gen_verilog;
 
+use crate::datatype::BitVector;
 
 #[derive(Debug, Clone)]
 pub struct Module {
     pub name: String,
+    pub pos: Option<Pos>,
     pub clock: bool,
-    pub inputs: Vec<Pin>,
-    pub outputs: Vec<Node>,
+    pub inputs: Vec<Input>,
+    pub outputs: Vec<Output>,
     pub assigns: Vec<Assign>,
     pub module_instances: Vec<ModuleInstance>,
 }
 
 #[derive(Debug, Clone)]
-pub struct ModuleInstance(pub String, pub String, pub Vec<SS>);
+pub struct Input(PinDef, Option<Pos>);
 
 #[derive(Debug, Clone)]
-pub struct Assign(pub Pin, pub Operator);
+pub struct Output(Node, Option<Pos>);
+
+#[derive(Debug, Clone)]
+pub struct ModuleInstance(pub String, pub String, pub Vec<SS>, Option<Pos>);
+
+#[derive(Debug, Clone)]
+pub struct Assign(pub PinDef, pub Operator, Option<Pos>);
 
 /// Signal Source
 #[derive(Debug, Clone)]
@@ -45,7 +55,10 @@ pub enum SS {
 }
 
 #[derive(Debug, Clone)]
-pub struct Pin(pub String, pub String, pub usize);
+pub struct Pin(pub String, pub String);
+
+#[derive(Debug, Clone)]
+pub struct PinDef(pub String, pub usize);
 
 #[derive(Debug, Clone)]
 pub struct Reg(pub String, pub usize);
@@ -55,7 +68,7 @@ pub struct Mem(pub Reg, pub usize);
 
 #[derive(Debug, Clone)]
 pub enum Node {
-    Pin(Pin),
+    Pin(PinDef),
     Reg(Reg),
     Mem(Mem),
 }
@@ -85,4 +98,12 @@ pub enum ReduceType {
     BitAnd,
     BitOr,
     BitXor,
+}
+
+
+#[derive(Debug, Clone)]
+pub struct Pos {
+    pub file: String,
+    pub line: usize,
+    pub col: usize,
 }
