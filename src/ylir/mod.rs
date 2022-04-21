@@ -73,6 +73,8 @@ pub enum Node {
 
 #[derive(Debug, Clone)]
 pub enum Operator {
+    Add(SS, SS),
+    Sub(SS, SS),
     BitAnd(SS, SS),
     BitOr(SS, SS),
     BitXor(SS, SS),
@@ -88,8 +90,13 @@ pub enum Operator {
     Concat(Vec<SS>),
     CmpEq(SS, SS),
     Cond(SS, SS, SS),
+    Mux(Vec<(SS, SS)>, SS),
+    PatMat(SS, Vec<(SS, SS)>),
     GetField(SS, SS),
 }
+
+#[derive(Debug, Clone)]
+pub struct Pat(pub BitVector);
 
 #[derive(Debug, Clone)]
 pub enum ReduceType {
@@ -97,7 +104,6 @@ pub enum ReduceType {
     BitOr,
     BitXor,
 }
-
 
 #[derive(Debug, Clone)]
 pub struct Pos {

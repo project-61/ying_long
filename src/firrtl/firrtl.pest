@@ -1,0 +1,331 @@
+
+file = { (!EOI ~ circuit)+ ~ EOI }
+
+circuit = {
+    info_opt ~ "circuit" ~ id ~ ":" ~  module*
+}
+
+module = {
+    info_opt ~ "module" ~ id ~ ":" ~ port* ~ stmt*
+}
+
+extmodule = {
+    info_opt ~ "extmodule" ~ id ~ ":" ~ port*
+}
+
+port = {
+    info_opt ~ dir ~ id ~ ":" ~ typ
+}
+
+dir = {
+    "input" | "output"
+}
+
+typ = {
+    raw_typ ~ type_vec_extend*
+}
+
+raw_typ =
+    { uint
+    | sint
+    | clock
+    | bundle
+    }
+
+uint = {
+    "UInt" ~ size_opt
+}
+
+sint = {
+    "SInt" ~ size_opt
+}
+
+size_opt = { size_* }
+
+size_ = { "<" ~ int ~ ">" }
+
+clock = {
+    "Clock"
+}
+
+type_bind = {
+    id ~ ":" ~ typ
+}
+
+field = {
+    flip_opt ~ type_bind
+}
+
+flip_opt = {
+    "flip"?
+}
+
+bundle = {
+    "{" ~ (type_bind ~ ("," ~ type_bind)* ~ ","?)? ~ "}"
+}
+
+type_vec_extend = {
+    "[" ~ int ~ "]"
+}
+
+stmt = {
+    info_opt ~ raw_stmt
+}
+
+raw_stmt =
+    { wire_def
+    | reg_def
+    | mem_def
+    | inst
+    | node
+    | connect
+    | partial_connect
+    | invalidate
+    | when
+    | stop
+    | printf
+    | skip
+    }
+
+wire_def = {
+    "wire" ~ type_bind
+}
+
+reg_def = {
+    "reg" ~ type_bind ~ "," ~ exp ~ (exp ~ "," ~ exp)?
+}
+
+mem_def = {
+    "mem" ~ id ~ ":" ~ "("
+    ~ "data-type" ~ "=>" ~ typ
+    ~ "depth" ~ "=>" ~ int
+    ~ "read-latency" ~ "=>" ~ int
+    ~ "write-latency" ~ "=>" ~ int
+    ~ "read-under-write" ~ "=>" ~ ruw
+    ~ readers
+    ~ writers
+    ~ readwriters
+    ~ ")"
+}
+
+readers = { reader* }
+writers = { writer* }
+readwriters = { readwriter* }
+
+reader = {
+    "reader" ~ "=>" ~ id
+}
+
+writer = {
+    "writer" ~ "=>" ~ id
+}
+
+readwriter = {
+    "readwriter" ~ "=>" ~ id
+}
+
+inst = {
+    "inst" ~ id ~ "of" ~ id
+}
+
+node = {
+    "node" ~ id ~ "=" ~ exp
+}
+
+connect = {
+    exp ~ "<=" ~ exp
+}
+
+partial_connect = {
+    exp ~ "<-" ~ exp
+}
+
+invalidate = {
+    exp ~ "is" ~ "invalid"
+}
+
+when = {
+    "when" ~ exp ~ ":" ~ stmt
+    ~ ("else" ~ ":" ~ stmt)?
+}
+
+stop = {
+    "stop" ~ "(" ~ exp ~ "," ~ exp ~ "," ~ int ~ ")"
+}
+
+printf = {
+    "printf" ~ "(" ~ exp ~ "," ~ exp ~ "," ~ str ~ exp ~ ")"
+}
+
+skip = { "skip" }
+
+stmt_group = {
+    stmt*
+}
+
+ruw =
+    { "old"
+    | "new"
+    | "undefined"
+    }
+
+info_opt = { info? }
+
+info = {
+    "@" ~ "[" ~ str ~ int ~ "," ~ int ~ "]"
+}
+
+exp = {
+    (raw_exp ~ sub_exp_extend*)*
+}
+
+raw_exp =
+    { literal
+    | id
+    | sub_field
+    | sub_index
+    | sub_access
+    | mux
+    | validif
+    | primop
+    }
+
+literal = {
+    literal_type ~ "(" ~ literal_value ~ ")"
+}
+
+literal_type = {
+    uint | sint
+}
+
+literal_value = {
+    int | str
+}
+
+sub_exp_extend = {
+    sub_field | sub_index | sub_access
+}
+
+sub_field = {
+    "." ~ id
+}
+
+sub_index = {
+    "[" ~ int ~ "]"
+}
+
+sub_access = {
+    "[" ~ exp ~ "]"
+}
+
+mux = {
+    "mux" ~ "(" ~ exp ~ "," ~ exp ~ "," ~ exp ~ ")"
+}
+
+validif = {
+    "validif" ~ "(" ~ exp ~ "," ~ exp ~ ")"
+}
+
+primop = {
+    op ~ "(" ~ (exp ~ ("," ~ exp)* ~ ("," ~ int)*)? ~ ")"
+}
+
+// exps = { exp* }
+
+op =
+    { "add"
+    | "sub"
+    | "mul"
+    | "div"
+    | "mod"
+    | "lt"
+    | "leq"
+    | "gt"
+    | "geq"
+    | "eq"
+    | "neq"
+    | "pad"
+    | "asUInt"
+    | "asSInt"
+    | "asClock"
+    | "shl"
+    | "shr"
+    | "dshl"
+    | "dshr"
+    | "cvt"
+    | "neg"
+    | "not"
+    | "and"
+    | "or"
+    | "xor"
+    | "andr"
+    | "orr"
+    | "cat"
+    | "bits"
+    | "head"
+    | "tail"
+    }
+
+///////////////////////////////////////////////
+
+keywords = _
+    { op
+    | ruw
+    | "mut"
+    | "validif"
+    | "skip"
+    | "stop"
+    | "printf"
+    }
+
+id = $ {
+    !keywords ~
+    (ASCII_ALPHA_LOWER | ASCII_ALPHA_UPPER | other_char) ~ (ASCII_ALPHANUMERIC | other_char)*
+    }
+
+other_char = {
+     "~" | "!" | "@" | "#" | "$" | "%" | "^" | "*" | "-" | "_" | "+" | "=" | "?" | "/"
+}
+
+
+// fixme
+str = @{ "\"" ~ (escape | (!("\\" | "\"") ~ ANY)+)* ~ "\""}
+
+escape = _{ "\\\\"
+		  | "\\\""
+		  | "\\'"
+		  | "\\n"
+		  | "\\t"
+		  }
+
+int = $
+    { number_hex
+    | number_oct
+    | number_bin
+    | number_dec
+    }
+
+number_dec = _ {
+    ("-")? ~ ASCII_DIGIT+
+    }
+
+number_oct = _ {
+    "0o" ~ ASCII_OCT_DIGIT+
+    }
+
+number_hex = _ {
+    ("'h"|"'H") ~ ASCII_HEX_DIGIT+
+    }
+
+number_bin = _ {
+    "0b" ~ ASCII_BIN_DIGIT+
+    }
+
+// UNDERLINE = _ { "_" }
+
+WHITESPACE = _
+	{ " "
+	| "\t"
+	| WHITE_SPACE
+	| NEWLINE
+	}
