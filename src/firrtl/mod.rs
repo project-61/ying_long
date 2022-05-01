@@ -1,24 +1,32 @@
-pub mod parse;
+use std::cell::RefCell;
 
+pub mod parse;
 
 
 #[derive(Debug, Clone, Eq, PartialEq, PartialOrd, Ord, Hash)]
 pub struct PosInfo {
     pub name: String,
-    pub line: usize,
-    pub col: usize,
+    pub line: Line,
+    pub col: Col,
 }
 
+#[derive(Debug, Clone, Eq, PartialEq, PartialOrd, Ord, Hash)]
+pub struct Line (pub usize);
+#[derive(Debug, Clone, Eq, PartialEq, PartialOrd, Ord, Hash)]
+pub struct Col(pub usize);
+
+pub type PosInfoOpt = Option<PosInfo>;
 
 pub type Id = String;
+
 
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub struct TypeBind (pub Id, pub Type);
 
 
 #[derive(Debug, Clone, Eq, PartialEq)]
-pub struct Firrtl {
-    pub pos: PosInfo,
+pub struct Circuit {
+    pub pos: PosInfoOpt,
     pub id: Id,
     pub modules: Vec<Module>,
     // pub symbol_table: RefCell<HashMap<Id, usize>>,
@@ -27,18 +35,21 @@ pub struct Firrtl {
 
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub struct Module {
-    pub pos: PosInfo,
+    pub pos: PosInfoOpt,
     pub id: Id,
-    pub ports: Vec<Port>,
-    pub stmt: Stmt,
+    pub ports: Ports,
+    pub stmts: StmtGroup,
 }
+
+pub type Ports = Vec<Port>;
 
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub struct Port {
-    pub pos: PosInfo,
+    pub pos: PosInfoOpt,
     pub dir: Dir,
     pub bind: TypeBind,
 }
+
 
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub enum Dir {
@@ -46,14 +57,18 @@ pub enum Dir {
     Output,
 }
 
+
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub enum Type {
     Clock,
-    Uint(usize),
-    Sint(usize),
-    Vector(Box<Type>, usize),
+    Uint(SizeOpt),
+    Sint(SizeOpt),
+    Vector(Box<Type>, VecSize),
     Bundle(Vec<Field>),
 }
+
+type VecSize = usize;
+type SizeOpt = Option<usize>;
 
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub struct Field {
@@ -61,11 +76,13 @@ pub struct Field {
     pub bind: TypeBind,
 }
 
+
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub struct Stmt {
-    pub pos: PosInfo,
+    pub pos: PosInfoOpt,
     pub value: RawStmt,
 }
+
 
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub enum RawStmt {
@@ -81,8 +98,12 @@ pub enum RawStmt {
     Stop(Stop),
     Printf(Printf),
     Skip,
-    StmtGroup(Vec<Stmt>),
+    StmtGroup(StmtGroup),
 }
+
+
+#[derive(Debug, Clone, Eq, PartialEq)]
+pub struct StmtGroup(pub Vec<Stmt>);
 
 
 #[derive(Debug, Clone, Eq, PartialEq)]

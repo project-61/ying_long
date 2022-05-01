@@ -1,20 +1,25 @@
 
 file = { (!EOI ~ circuit)+ ~ EOI }
 
+
 circuit = {
     info_opt ~ "circuit" ~ id ~ ":" ~  module*
 }
 
 module = {
-    info_opt ~ "module" ~ id ~ ":" ~ port* ~ stmt*
+    info_opt ~ "module" ~ id ~ ":" ~ ports ~ stmt_group
 }
 
 extmodule = {
-    info_opt ~ "extmodule" ~ id ~ ":" ~ port*
+    info_opt ~ "extmodule" ~ id ~ ":" ~ ports
+}
+
+ports = {
+    port*
 }
 
 port = {
-    info_opt ~ dir ~ id ~ ":" ~ typ
+    info_opt ~ dir ~ type_bind
 }
 
 dir = {
@@ -40,7 +45,7 @@ sint = {
     "SInt" ~ size_opt
 }
 
-size_opt = { size_* }
+size_opt = { size_? }
 
 size_ = { "<" ~ int ~ ">" }
 
@@ -227,7 +232,7 @@ validif = {
 }
 
 primop = {
-    op ~ "(" ~ (exp ~ ("," ~ exp)* ~ ("," ~ int)*)? ~ ")"
+    op ~ "(" ~ (exp ~ ("," ~ exp)* ~ ("," ~ int)*)? ~ (int ~ ("," ~ int)*)? ~ ")"
 }
 
 // exps = { exp* }
@@ -271,15 +276,28 @@ op =
 keywords = _
     { op
     | ruw
-    | "mut"
+    | "input"
+    | "output"
+    | "wire"
+    | "reg"
+    | "inst"
+    | "node"
+    | "is"
     | "validif"
+    | "mux"
+    | "when"
+    | "else"
     | "skip"
     | "stop"
     | "printf"
     }
 
+non_id = _ {
+    keywords | "@" | "[" | "]" | "(" | ")" | ","
+}
+
 id = $ {
-    !keywords ~
+    !non_id ~
     (ASCII_ALPHA_LOWER | ASCII_ALPHA_UPPER | other_char) ~ (ASCII_ALPHANUMERIC | other_char)*
     }
 
