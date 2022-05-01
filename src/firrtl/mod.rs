@@ -1,4 +1,4 @@
-use std::cell::RefCell;
+// use std::cell::RefCell;
 
 pub mod parse;
 
@@ -67,15 +67,16 @@ pub enum Type {
     Bundle(Vec<Field>),
 }
 
-type VecSize = usize;
-type SizeOpt = Option<usize>;
+pub type VecSize = usize;
+pub type SizeOpt = Option<usize>;
 
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub struct Field {
-    pub is_flip: bool,
+    pub is_flip: IsFlip,
     pub bind: TypeBind,
 }
 
+pub type IsFlip = bool;
 
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub struct Stmt {

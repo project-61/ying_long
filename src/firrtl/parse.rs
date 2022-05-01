@@ -27,7 +27,13 @@ macro_rules! start_bind {
 
 macro_rules! unbox {
     ($id:ident) => {
-        let mut $id = $id.into_inner().next().unwrap();
+        let $id = $id.into_inner().next().unwrap();
+    };
+}
+
+macro_rules! unbox_collect {
+    ($id:ident, $src:expr, $ty:ident) => {
+        let $id = $src.into_inner().map($ty::parse_from).collect();
     };
 }
 
@@ -132,8 +138,7 @@ impl Parse for Col {
 impl Parse for Ports {
     fn parse_from(i: Pair<Rule>) -> Self {
         check!(i, ports);
-        start_bind!(i);
-        nexts!(ports, i, Port);
+        unbox_collect!(ports, i, Port);
         ports
     }
 }
@@ -220,8 +225,7 @@ fn parse_into_sint(i: Pair<Rule>) -> Type {
 #[inline]
 fn parse_into_bundle(i: Pair<Rule>) -> Type {
     check!(i, bundle);
-    start_bind!(i);
-    nexts!(binds, i, TypeBind);
+    unbox_collect!(binds, i, Field);
     Type::Bundle(binds)
 }
 
@@ -235,13 +239,32 @@ impl Parse for VecSize {
     }
 }
 
-
 impl Parse for SizeOpt {
     fn parse_from(i: Pair<Rule>) -> Self {
         check!(i, size_opt);
         start_bind!(i);
         next_opt!(size, i, usize);
         size
+    }
+}
+
+impl Parse for Field {
+    fn parse_from(i: Pair<Rule>) -> Self {
+        check!(i, field);
+        start_bind!(i);
+        next!(is_flip, i, IsFlip);
+        next!(bind, i, TypeBind);
+        Field {
+            is_flip,
+            bind,
+        }
+    }
+}
+
+impl Parse for IsFlip {
+    fn parse_from(i: Pair<Rule>) -> Self {
+        check!(i, flip_opt);
+        !i.as_str().is_empty()
     }
 }
 
