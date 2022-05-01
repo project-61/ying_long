@@ -271,6 +271,27 @@ impl Parse for IsFlip {
 impl Parse for StmtGroup {
     fn parse_from(i: Pair<Rule>) -> Self {
         check!(i, stmt_group);
+        unbox_collect!(stmts, i, Stmt);
+        Self(stmts)
+    }
+}
+
+impl Parse for Stmt {
+    fn parse_from(i: Pair<Rule>) -> Self {
+        check!(i, stmt);
+        start_bind!(i);
+        next!(pos, i, PosInfoOpt);
+        next!(raw_stmt, i, RawStmt);
+        Stmt {
+            pos,
+            raw_stmt,
+        }
+    }
+}
+
+impl Parse for RawStmt {
+    fn parse_from(i: Pair<Rule>) -> Self {
+        check!(i, raw_stmt);
         todo!()
     }
 }

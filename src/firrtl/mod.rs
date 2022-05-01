@@ -81,7 +81,7 @@ pub type IsFlip = bool;
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub struct Stmt {
     pub pos: PosInfoOpt,
-    pub value: RawStmt,
+    pub raw_stmt: RawStmt,
 }
 
 
