@@ -17,7 +17,7 @@ impl Pass<SimFilter> for Circuit {
 }
 
 impl Pass<SimFilter> for Module {
-    fn pass(&mut self, pm: &mut SimFilter) {
+    fn pass(&mut self, _pm: &mut SimFilter) {
         let r = self.stmts.0.iter().filter(filter).cloned().collect();
         self.stmts.0 = r;
     }

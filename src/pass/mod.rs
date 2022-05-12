@@ -6,5 +6,5 @@ pub trait Pass<PM> {
 
 pub trait PurePass<PM> {
     type Target;
-    fn pure_pass(&self, pm: &PM) -> Self::Target
+    fn pure_pass(&self, pm: &PM) -> Self::Target;
 }
