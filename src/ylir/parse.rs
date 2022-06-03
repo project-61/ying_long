@@ -6,7 +6,7 @@ use super::*;
 
 
 #[derive(Parser)]
-#[grammar = "./firrtl/firrtl.pest"]
+#[grammar = "./ylir/grammar.pest"]
 struct FirrtlParser;
 
 trait Parse {
@@ -292,6 +292,71 @@ impl Parse for Stmt {
 impl Parse for RawStmt {
     fn parse_from(i: Pair<Rule>) -> Self {
         check!(i, raw_stmt);
-        todo!()
+        unbox!(i);
+        match i.as_rule() {
+            Rule::wire_def => wire_def_parse_from(i),
+            Rule::reg_def => reg_def_parse_from(i),
+            Rule::mem_def => mem_def_parse_from(i),
+            Rule::inst => inst_parse_from(i),
+            Rule::node => node_parse_from(i),
+            Rule::connect => connect_parse_from(i),
+            Rule::partial_connect => partial_connect_parse_from(i),
+            Rule::invalidate => invalidate_parse_from(i),
+            Rule::when => when_parse_from(i),
+            Rule::printf => printf_parse_from(i),
+            Rule::stop => stop_parse_from(i),
+            Rule::skip => RawStmt::Skip,
+            _ => unreachable!()
+        }
     }
+}
+
+fn stop_parse_from(i: Pair<Rule>) -> RawStmt {
+    todo!()
+}
+
+fn printf_parse_from(i: Pair<Rule>) -> RawStmt {
+    todo!()
+}
+
+fn when_parse_from(i: Pair<Rule>) -> RawStmt {
+    todo!()
+}
+
+fn invalidate_parse_from(i: Pair<Rule>) -> RawStmt {
+    todo!()
+}
+
+fn partial_connect_parse_from(i: Pair<Rule>) -> RawStmt {
+    todo!()
+}
+
+fn connect_parse_from(i: Pair<Rule>) -> RawStmt {
+    todo!()
+}
+
+fn node_parse_from(i: Pair<Rule>) -> RawStmt {
+    todo!()
+}
+
+fn inst_parse_from(i: Pair<Rule>) -> RawStmt {
+    todo!()
+}
+
+fn mem_def_parse_from(i: Pair<Rule>) -> RawStmt {
+    todo!()
+}
+
+fn reg_def_parse_from(i: Pair<Rule>) -> RawStmt {
+    check!(i, reg_def);
+
+    start_bind!(i);
+    todo!()
+}
+
+fn wire_def_parse_from(i: Pair<Rule>) -> RawStmt {
+    check!(i, wire_def);
+    start_bind!(i);
+    next!(type_bind, i, TypeBind);
+    RawStmt::WireDef(type_bind)
 }

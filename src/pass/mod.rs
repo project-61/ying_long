@@ -1,4 +1,6 @@
 pub mod sim_filter;
+pub mod gen_verilog;
+
 
 pub trait Pass<PM> {
     fn pass(&mut self, pm: &mut PM);

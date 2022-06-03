@@ -1,4 +1,4 @@
-use crate::firrtl::*;
+use crate::ylir::*;
 
 use super::Pass;
 
@@ -31,7 +31,7 @@ fn filter(stmt: &&Stmt) -> bool {
         RawStmt::Inst(_, _)             |
         RawStmt::Node(_, _)             |
         RawStmt::Connect(_, _)          |
-        RawStmt::PartialConnect(_, _)   |
+        // RawStmt::PartialConnect(_, _)   |
         RawStmt::When(_)                |
         // RawStmt::Invalidate(_)          |
         // RawStmt::Stop(_)                |

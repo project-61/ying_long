@@ -1,113 +1,195 @@
-pub mod ring_check;
-pub mod const_propagate;
-pub mod gen_verilog;
+// use std::cell::RefCell;
 
-use crate::datatype::BitVector;
+use self::type_system::{TypeBind, Type};
 
-#[derive(Debug, Clone)]
+pub mod type_system;
+// pub mod parse;
+
+
+pub trait GetWidth {
+    fn get_width(&self) -> Option<usize>;
+}
+
+
+
+#[derive(Debug, Clone, Eq, PartialEq)]
+pub struct Circuit {
+    pub pos: PosInfoOpt,
+    pub id: Id,
+    pub modules: Vec<Module>,
+    // pub symbol_table: RefCell<HashMap<Id, usize>>,
+}
+
+
+#[derive(Debug, Clone, Eq, PartialEq)]
 pub struct Module {
-    pub name: String,
-    pub pos: Option<Pos>,
-    pub clock: bool,
-    pub inputs: Vec<Input>,
-    pub outputs: Vec<Output>,
-    pub assigns: Vec<Assign>,
-    pub module_instances: Vec<ModuleInstance>,
+    pub pos: PosInfoOpt,
+    pub id: Id,
+    pub ports: Ports,
+    pub stmts: StmtGroup,
 }
 
-#[derive(Debug, Clone)]
-pub struct Input(pub PinDef, pub Option<Pos>);
+pub type Ports = Vec<Port>;
 
-#[derive(Debug, Clone)]
-pub struct Output(pub Node, pub Option<Pos>);
+#[derive(Debug, Clone, Eq, PartialEq)]
+pub struct Port {
+    pub pos: PosInfoOpt,
+    pub dir: Dir,
+    pub bind: TypeBind,
+}
 
-#[derive(Debug, Clone)]
-pub struct ModuleInstance(pub String, pub String, pub Vec<SS>, pub Option<Pos>);
 
-#[derive(Debug, Clone)]
-pub struct Assign(pub PinDef, pub Operator, pub Option<Pos>);
+#[derive(Debug, Clone, Eq, PartialEq)]
+pub enum Dir {
+    Input,
+    Output,
+}
 
-/// Signal Source
-#[derive(Debug, Clone)]
-pub enum Constant {
+
+
+
+#[derive(Debug, Clone, Eq, PartialEq)]
+pub struct Stmt {
+    pub pos: PosInfoOpt,
+    pub raw_stmt: RawStmt,
+}
+
+
+#[derive(Debug, Clone, Eq, PartialEq)]
+pub enum RawStmt {
+    WireDef(TypeBind),
+    RegDef(TypeBind, Expr, Option<(Expr, Expr)>),
+    MemDef(Mem),
+    Inst(Id, Expr),
+    Node(Id, Expr),
+    Connect(Expr, Expr),
+    // PartialConnect(Expr, Expr),
+    When(Box<When>),
+    StmtGroup(StmtGroup),
+    // Printf(Printf),
+    // Invalidate(Expr),
+    // Stop(Stop),
+    // Skip,
+}
+
+
+
+
+
+#[derive(Debug, Clone, Eq, PartialEq)]
+pub enum Expr {
+    Literal(Literal),
+    Ref(Id),
+    SubField(Box<Expr>, Id),
+    SubIndex(Box<Expr>, usize),
+    SubAccess(Box<Expr>, Box<Expr>),
+    Mux(Box<Expr>, Box<Expr>, Box<Expr>),
+    // Validif(Box<Expr>, Box<Expr>),
+    Primop(Primop, Vec<Expr>),
+}
+
+#[derive(Debug, Clone, Eq, PartialEq)]
+pub struct StmtGroup(pub Vec<Stmt>);
+
+
+#[derive(Debug, Clone, Eq, PartialEq)]
+pub struct Mem {
+    pub id: Id,
+    pub data_type: Type,
+    pub depth: usize,
+    pub read_latency: usize,
+    pub write_latency: usize,
+    pub read_under_write: Ruw,
+    pub reader: Vec<Id>,
+    pub writer: Vec<Id>,
+    pub readwriter: Vec<Id>,
+}
+
+#[derive(Debug, Clone, Eq, PartialEq)]
+pub enum Ruw {
+    Undefined,
+    New,
+    Old,
+}
+
+#[derive(Debug, Clone, Eq, PartialEq)]
+pub struct When {
+    pub cond: Expr,
+    pub then: Stmt,
+    pub else_: Option<Stmt>,
+}
+
+/*
+#[derive(Debug, Clone, Eq, PartialEq)]
+pub struct Stop(pub Expr, pub Expr, pub usize);
+
+#[derive(Debug, Clone, Eq, PartialEq)]
+pub struct Printf(pub Expr, pub Expr, pub String, pub Vec<Expr>);
+//  */
+
+#[derive(Debug, Clone, Eq, PartialEq)]
+pub struct Literal {
+    pub tp: Type,
+    pub value: LiteralValue,
+}
+
+#[derive(Debug, Clone, Eq, PartialEq)]
+pub enum LiteralValue {
+    Int(u128),
     String(String),
-    Int(String, usize),
-    Float(String, usize),
-    BitVector(BitVector),
 }
 
-impl Constant {
-    pub fn get_bitvec(&self) -> BitVector {
-        match self {
-            Constant::BitVector(bv) => bv.clone(),
-            _ => todo!(),
-        }
-    }
+#[derive(Debug, Clone, Eq, PartialEq)]
+pub enum Primop {
+    Add,
+    Sub,
+    Mul,
+    Div,
+    Mod,
+    Lt,
+    Leq,
+    Gt,
+    Geq,
+    Eq,
+    Neq,
+    Pad,
+    AsUInt,
+    AsSInt,
+    AsClock,
+    Shl,
+    Shr,
+    Dshl,
+    Dshr,
+    Cvt,
+    Neg,
+    Not,
+    And,
+    Or,
+    Xor,
+    Andr,
+    Orr,
+    Xorr,
+    Cat,
+    Bits,
+    Head,
+    Tail,
 }
 
-/// Signal Source
-#[derive(Debug, Clone)]
-pub enum SS {
-    Const(Constant),
-    Var(Var),
-}
 
-#[derive(Debug, Clone)]
-pub struct Var(pub String, pub String);
-
-#[derive(Debug, Clone)]
-pub struct PinDef(pub String, pub usize, pub usize);
-
-#[derive(Debug, Clone)]
-pub struct Reg(pub String, pub usize);
-
-#[derive(Debug, Clone)]
-pub struct Mem(pub Reg, pub usize);
-
-#[derive(Debug, Clone)]
-pub enum Node {
-    Pin(PinDef),
-    Reg(Reg),
-    Mem(Mem),
-}
-
-#[derive(Debug, Clone)]
-pub enum Operator {
-    Add(SS, SS),
-    Sub(SS, SS),
-    BitAnd(SS, SS),
-    BitOr(SS, SS),
-    BitXor(SS, SS),
-    BitXnor(SS, SS),
-    BitNot(SS),
-    BitLShift(SS, usize),
-    BitRShift(SS, usize),
-    // BitURShift(Pin, SS, usize),
-    LengthExtend(SS, usize, usize),
-    SignalExtend(SS, usize),
-    Split(SS, usize, usize),
-    BundleReduce(ReduceType, SS),
-    Concat(Vec<SS>),
-    CmpEq(SS, SS),
-    Cond(SS, SS, SS),
-    Mux(Vec<(SS, SS)>, SS),
-    PatMat(SS, Vec<(SS, SS)>),
-    GetField(SS, SS),
-}
-
-#[derive(Debug, Clone)]
-pub struct Pat(pub BitVector);
-
-#[derive(Debug, Clone)]
-pub enum ReduceType {
-    BitAnd,
-    BitOr,
-    BitXor,
-}
-
-#[derive(Debug, Clone)]
-pub struct Pos {
+#[derive(Debug, Clone, Eq, PartialEq, PartialOrd, Ord, Hash)]
+pub struct PosInfo {
     pub file: String,
-    pub line: usize,
-    pub col: usize,
+    pub line: Line,
+    pub col: Col,
 }
+
+#[derive(Debug, Clone, Eq, PartialEq, PartialOrd, Ord, Hash)]
+pub struct Line (pub usize);
+#[derive(Debug, Clone, Eq, PartialEq, PartialOrd, Ord, Hash)]
+pub struct Col(pub usize);
+
+pub type PosInfoOpt = Option<PosInfo>;
+
+
+
+pub type Id = String;

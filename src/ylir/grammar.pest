@@ -98,7 +98,7 @@ wire_def = {
 }
 
 reg_def = {
-    "reg" ~ type_bind ~ "," ~ exp ~ (exp ~ "," ~ exp)?
+    "reg" ~ type_bind ~ "," ~ reg ~ (exp ~ "," ~ exp)?
 }
 
 mem_def = {
