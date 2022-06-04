@@ -46,5 +46,5 @@ fn main() {
     let pm = GenVerilog();
     let out = r.pure_pass(&pm);
 
-    println!("out:\n{}", out);
+    println!("{}", out);
 }

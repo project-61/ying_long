@@ -88,6 +88,22 @@ pub enum Expr {
     Primop(Primop, Vec<Expr>),
 }
 
+impl Expr {
+    pub fn get_literal(&self) -> Option<&Literal> {
+        match self {
+            Expr::Literal(literal) => Some(literal),
+            _ => None,
+        }
+    }
+
+    pub fn get_id(&self) -> Option<&Id> {
+        match self {
+            Expr::Ref(id) => Some(id),
+            _ => None,
+        }
+    }
+}
+
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub struct StmtGroup(pub Vec<Stmt>);
 
@@ -158,8 +174,8 @@ pub enum Primop {
     AsClock,
     Shl,
     Shr,
-    Dshl,
-    Dshr,
+    // Dshl,
+    // Dshr,
     Cvt,
     Neg,
     Not,
@@ -171,8 +187,8 @@ pub enum Primop {
     Xorr,
     Cat,
     Bits,
-    Head,
-    Tail,
+    // Head,
+    // Tail,
 }
 
 
