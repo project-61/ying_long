@@ -33,7 +33,7 @@ fn main() {
                 stmts: StmtGroup(vec![
                     Stmt {
                         pos: None,
-                        raw_stmt: RawStmt::Inst(
+                        raw_stmt: RawStmt::Node(
                             String::from("你是一个一个端口啊啊啊啊啊啊"),
                             Expr::Primop(Primop::Add, vec![Expr::Ref("哼哼哼".to_string()), Expr::Ref("啊啊啊啊啊啊啊啊啊".to_string())]),
                         )
@@ -43,8 +43,8 @@ fn main() {
         ],
     };
 
-    let pm = GenVerilog();
-    let out = r.pure_pass(&pm);
+    // let pm = GenVerilog();
+    // let out = r.pure_pass(&pm);
 
-    println!("{}", out);
+    // println!("{}", out);
 }

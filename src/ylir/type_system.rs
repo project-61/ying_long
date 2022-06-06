@@ -7,8 +7,24 @@ pub enum Type {
     Clock,
     Uint(SizeOpt),
     Sint(SizeOpt),
-    Vector(Box<Type>, VecSize),
-    Bundle(Vec<Field>),
+    Vector(Vector),
+    Bundle(Bundle),
+}
+
+impl Type {
+    pub fn get_vector(&self) -> Option<&Vector> {
+        match self {
+            Type::Vector(v) => Some(v),
+            _ => None,
+        }
+    }
+
+    pub fn get_bundle(&self) -> Option<&Bundle> {
+        match self {
+            Type::Bundle(v) => Some(v),
+            _ => None,
+        }
+    }
 }
 
 impl GetWidth for Type {
@@ -17,12 +33,23 @@ impl GetWidth for Type {
             Type::Clock => Some(1),
             Type::Uint(s) => s.clone(),
             Type::Sint(s) => s.clone(),
-            Type::Vector(t, s) => t.get_width().map(|w| w*s),
-            Type::Bundle(f) => f.iter().map(|f| f.get_width()).sum(),
+            Type::Vector(Vector(t, s)) => t.get_width().map(|w| w*s),
+            Type::Bundle(Bundle(f)) => f.iter().map(|f| f.get_width()).sum(),
         }
     }
 }
 
+#[derive(Debug, Clone)]
+pub struct Vector (pub Box<Type>, pub VecSize);
+
+#[derive(Debug, Clone)]
+pub struct Bundle (pub Vec<Field>);
+
+impl Bundle {
+    pub fn get_field(&self, id: &Id) -> Option<&Field> {
+        self.0.iter().find(|f| f.bind.0 == *id)
+    }
+}
 
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub struct Field {

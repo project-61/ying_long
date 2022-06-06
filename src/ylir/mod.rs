@@ -60,7 +60,7 @@ pub enum RawStmt {
     WireDef(TypeBind),
     RegDef(TypeBind, Expr, Option<(Expr, Expr)>),
     MemDef(Mem),
-    Inst(Id, Expr),
+    Inst(Id, Id),
     Node(Id, Expr),
     Connect(Expr, Expr),
     // PartialConnect(Expr, Expr),

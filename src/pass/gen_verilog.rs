@@ -6,18 +6,19 @@ use rayon::prelude::*;
 use crate::ylir::*;
 use crate::ylir::type_system::*;
 use super::PurePass;
+use super::type_infer::GlobalEnv;
 
 
-pub struct GenVerilog();
+pub struct GenVerilog(pub GlobalEnv);
 
 
 impl PurePass<GenVerilog> for Circuit {
     type Target = String;
 
-    fn pure_pass(&self, _pm: &GenVerilog) -> Self::Target {
+    fn pure_pass(&self, pm: &GenVerilog) -> Self::Target {
         self.modules
             .par_iter()
-            .map(|i| i.pure_pass(&GenVerilog()))
+            .map(|i| i.pure_pass(pm))
             .collect::<Vec<_>>()
             .join("\n\n")
     }
@@ -91,7 +92,7 @@ impl PurePass<GenVerilog> for RawStmt {
             RawStmt::WireDef(w) => w.pure_pass(pm),
             RawStmt::RegDef(bind, value, append) => todo!(),
             RawStmt::MemDef(memdef) => todo!(),
-            RawStmt::Inst(name, value) => format!("\tassign {} = {};", name, value.pure_pass(pm)),
+            RawStmt::Inst(name, value) => todo!(),
             RawStmt::Node(name, value) => format!("\tassign {} = {};", name, value.pure_pass(pm)),
             RawStmt::Connect(a, b) => todo!(),
             RawStmt::When(w) => w.pure_pass(pm),
