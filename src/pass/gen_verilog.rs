@@ -12,7 +12,7 @@ use super::type_infer::GlobalEnv;
 pub struct GenVerilog(pub GlobalEnv);
 
 
-impl PurePass<GenVerilog> for Circuit {
+impl PurePass<&GenVerilog> for Circuit {
     type Target = String;
 
     fn pure_pass(&self, pm: &GenVerilog) -> Self::Target {
@@ -24,7 +24,7 @@ impl PurePass<GenVerilog> for Circuit {
     }
 }
 
-impl PurePass<GenVerilog> for Module {
+impl PurePass<&GenVerilog> for Module {
     type Target = String;
 
     fn pure_pass(&self, pm: &GenVerilog) -> Self::Target {
@@ -38,7 +38,7 @@ impl PurePass<GenVerilog> for Module {
 }
 
 
-impl PurePass<GenVerilog> for Ports {
+impl PurePass<&GenVerilog> for Ports {
     type Target = String;
 
     fn pure_pass(&self, pm: &GenVerilog) -> Self::Target {
@@ -50,7 +50,7 @@ impl PurePass<GenVerilog> for Ports {
 }
 
 
-impl PurePass<GenVerilog> for Port {
+impl PurePass<&GenVerilog> for Port {
     type Target = String;
 
     fn pure_pass(&self, pm: &GenVerilog) -> Self::Target {
@@ -63,7 +63,7 @@ impl PurePass<GenVerilog> for Port {
 }
 
 
-impl PurePass<GenVerilog> for StmtGroup {
+impl PurePass<&GenVerilog> for StmtGroup {
     type Target = String;
 
     fn pure_pass(&self, pm: &GenVerilog) -> Self::Target {
@@ -75,7 +75,7 @@ impl PurePass<GenVerilog> for StmtGroup {
 }
 
 
-impl PurePass<GenVerilog> for Stmt {
+impl PurePass<&GenVerilog> for Stmt {
     type Target = String;
 
     fn pure_pass(&self, pm: &GenVerilog) -> Self::Target {
@@ -84,7 +84,7 @@ impl PurePass<GenVerilog> for Stmt {
 }
 
 
-impl PurePass<GenVerilog> for RawStmt {
+impl PurePass<&GenVerilog> for RawStmt {
     type Target = String;
 
     fn pure_pass(&self, pm: &GenVerilog) -> Self::Target {
@@ -102,7 +102,7 @@ impl PurePass<GenVerilog> for RawStmt {
 }
 
 
-impl PurePass<GenVerilog> for Expr {
+impl PurePass<&GenVerilog> for Expr {
     type Target = String;
 
     fn pure_pass(&self, pm: &GenVerilog) -> Self::Target {
@@ -154,7 +154,7 @@ impl PurePass<GenVerilog> for Expr {
     }
 }
 
-impl PurePass<GenVerilog> for When {
+impl PurePass<&GenVerilog> for When {
     type Target = String;
 
     fn pure_pass(&self, pm: &GenVerilog) -> Self::Target {
@@ -174,7 +174,7 @@ impl PurePass<GenVerilog> for When {
 }
 
 
-impl PurePass<GenVerilog> for TypeBind {
+impl PurePass<&GenVerilog> for TypeBind {
     type Target = String;
 
     fn pure_pass(&self, pm: &GenVerilog) -> Self::Target {
@@ -190,7 +190,7 @@ impl PurePass<GenVerilog> for TypeBind {
     }
 }
 
-impl PurePass<GenVerilog> for PosInfoOpt {
+impl PurePass<&GenVerilog> for PosInfoOpt {
     type Target = String;
 
     fn pure_pass(&self, pm: &GenVerilog) -> Self::Target {
@@ -201,7 +201,7 @@ impl PurePass<GenVerilog> for PosInfoOpt {
     }
 }
 
-impl PurePass<GenVerilog> for PosInfo {
+impl PurePass<&GenVerilog> for PosInfo {
     type Target = String;
 
     fn pure_pass(&self, pm: &GenVerilog) -> Self::Target {

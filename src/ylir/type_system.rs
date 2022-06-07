@@ -12,6 +12,28 @@ pub enum Type {
 }
 
 impl Type {
+    pub fn unify(&self, other: &Self) -> Option<Type> {
+        match (self, other) {
+            (r@Type::Uint(Some(sz)), Type::Uint(Some(sz1))) => {
+                assert_eq!(sz, sz1, "untyped size mismatch");
+                // todo: return None
+                Some(r.clone())
+            },
+            (Type::Uint(_), r@Type::Uint(Some(sz))) |
+            (r@Type::Uint(Some(sz)), Type::Uint(_)) => Some(r.clone()),
+            (r@Type::Sint(Some(sz)), Type::Sint(Some(sz1))) => {
+                assert_eq!(sz, sz1, "untyped size mismatch");
+                // todo: return None
+                Some(r.clone())
+            },
+            (Type::Sint(_), r@Type::Sint(Some(sz))) |
+            (r@Type::Sint(Some(sz)), Type::Sint(_)) => Some(r.clone()),
+            (Type::Vector(a), Type::Vector(b)) => a.unify(b).map(Type::Vector),
+            (Type::Bundle(a), Type::Bundle(b)) => a.unify(b).map(Type::Bundle),
+            _ => return None,
+        }
+    }
+
     pub fn get_vector(&self) -> Option<&Vector> {
         match self {
             Type::Vector(v) => Some(v),
@@ -39,11 +61,29 @@ impl GetWidth for Type {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Vector (pub Box<Type>, pub VecSize);
 
-#[derive(Debug, Clone)]
+impl Vector {
+    fn unify(&self, other: &Self) -> Option<Self> {
+        let t = self.0.as_ref().unify(other.0.as_ref())?;
+        if self.1 == other.1 {
+            return None;
+        }
+        Some(Vector(Box::new(t), self.1))
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Bundle (pub Vec<Field>);
+
+impl Bundle {
+    fn unify(&self, other: &Self) -> Option<Self> {
+        // let t = self.0.as_ref().unify(&other.0.as_ref())?;
+        // todo: return None
+        todo!()
+    }
+}
 
 impl Bundle {
     pub fn get_field(&self, id: &Id) -> Option<&Field> {

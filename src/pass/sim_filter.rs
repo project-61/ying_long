@@ -8,7 +8,7 @@ use super::Pass;
 pub struct SimFilter();
 
 
-impl Pass<SimFilter> for Circuit {
+impl Pass<&mut SimFilter> for Circuit {
     fn pass(&mut self, pm: &mut SimFilter) {
         for i in self.modules.iter_mut() {
             i.pass(pm);
@@ -16,7 +16,7 @@ impl Pass<SimFilter> for Circuit {
     }
 }
 
-impl Pass<SimFilter> for Module {
+impl Pass<&mut SimFilter> for Module {
     fn pass(&mut self, _pm: &mut SimFilter) {
         let r = self.stmts.0.iter().filter(filter).cloned().collect();
         self.stmts.0 = r;

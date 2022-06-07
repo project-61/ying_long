@@ -1,4 +1,5 @@
 use libyinglong::pass::gen_verilog::GenVerilog;
+use libyinglong::pass::type_infer::GlobalEnv;
 use libyinglong::ylir::*;
 use libyinglong::pass::*;
 use libyinglong::pass::gen_verilog;
@@ -27,7 +28,7 @@ fn main() {
                     Port {
                         pos: None,
                         dir: Dir::Output,
-                        bind: TypeBind("你是一个一个端口啊啊啊啊啊啊".to_string(), Type::Uint(Some(32))),
+                        bind: TypeBind("你是一个一个端口啊啊啊啊啊啊".to_string(), Type::Uint(None)),
                     }
                 ],
                 stmts: StmtGroup(vec![
@@ -42,6 +43,10 @@ fn main() {
             },
         ],
     };
+
+    let mut pm = GlobalEnv::default();
+    r.ana_pass(&mut pm);
+    println!("analysis:\n{:?}", pm);
 
     // let pm = GenVerilog();
     // let out = r.pure_pass(&pm);
