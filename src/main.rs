@@ -14,30 +14,30 @@ fn main() {
         modules: vec![
             Module {
                 pos: None,
-                id: String::from("Module114514"),
+                id: String::from("Add"),
                 ports: vec![
                     Port {
                         pos: None,
                         dir: Dir::Input,
-                        bind: TypeBind("哼哼哼".to_string(), Type::Uint(Some(32))),
+                        bind: TypeBind("a".to_string(), Type::Uint(Some(32))),
                     },
                     Port {
                         pos: None,
                         dir: Dir::Input,
-                        bind: TypeBind("啊啊啊啊啊啊啊啊啊".to_string(), Type::Uint(Some(32))),
+                        bind: TypeBind("b".to_string(), Type::Uint(Some(32))),
                     },
                     Port {
                         pos: None,
                         dir: Dir::Output,
-                        bind: TypeBind("你是一个一个端口啊啊啊啊啊啊".to_string(), Type::Uint(None)),
+                        bind: TypeBind("c".to_string(), Type::Uint(None)),
                     }
                 ],
                 stmts: StmtGroup(vec![
                     Stmt {
                         pos: None,
                         raw_stmt: RawStmt::Node(
-                            String::from("你是一个一个端口啊啊啊啊啊啊"),
-                            Expr::Primop(Primop::Add, vec![Expr::Ref("哼哼哼".to_string()), Expr::Ref("啊啊啊啊啊啊啊啊啊".to_string())]),
+                            String::from("c"),
+                            Expr::Primop(Primop::Add, vec![Expr::Ref("a".to_string()), Expr::Ref("b".to_string())]),
                         )
                     }
                 ])

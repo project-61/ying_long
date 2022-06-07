@@ -23,15 +23,18 @@ pub enum NodeType {
 pub struct ModuleEnv (pub HashMap<Id, (NodeType, Type)>);
 
 pub trait TypeCheck<T> {
-    fn type_check(&mut self, env: T) {}
+    fn type_check(&mut self, env: T);
 
 }
 
 pub trait TypeInference<T> {
-    fn type_infer(&self, env: T) -> Option<Type> {
-        unimplemented!()
-    }
+    fn type_infer(&self, env: T) -> Option<Type>;
 }
+
+pub trait TypeSet {
+    fn set_type(&mut self, env: (&mut ModuleEnv, &mut GlobalEnv), ty: &Type) -> Option<()>;
+}
+
 
 impl TypeCheck<&mut GlobalEnv> for Circuit {
     fn type_check(&mut self, pm: &mut GlobalEnv) {
@@ -115,9 +118,11 @@ impl TypeCheck<(&mut ModuleEnv, &mut GlobalEnv)> for Stmt {
             RawStmt::Connect(a, b) => {
                 let a_ty = a.type_infer(pm);
                 let b_ty = b.type_infer(pm);
-                if let Some(false) = a_ty.map(|a| b_ty.map(|b| a == b)).flatten() {
+                let rt = a_ty.map(|a| b_ty.map(|b| a.unify(&b))).flatten().flatten();
+                if rt.is_none() {
                     panic!("type mismatch");
                 }
+                let rt = rt.unwrap();
             },
             RawStmt::When(s) => {when_apply_module_env(s.as_mut(), (pm, g_pm));},
             RawStmt::StmtGroup(sg) => sg.type_check((pm, g_pm)),
@@ -206,9 +211,42 @@ impl<'a> TypeInference<&'a ModuleEnv> for Expr {
     }
 }
 
+impl TypeSet for Expr {
+    fn set_type(&mut self, (pm, pg): (&mut ModuleEnv, &mut GlobalEnv), ty: &Type) -> Option<()> {
+        match self {
+            Expr::Literal(l) => None,
+            Expr::Ref(id) => {
+                let (nt, _) = pm.0.get(id).unwrap();
+                pm.0.insert(id.clone(), (nt.clone(), ty.clone()));
+                Some(())
+            },
+            Expr::SubField(id, sf) => todo!(),
+            Expr::SubIndex(expr, _) |
+            Expr::SubAccess(expr, _) => {
+                // expr.type_infer((pm, pg));
+                // let (nt, ty) = pm.0.get(id).unwrap();
+
+                // pm.0.insert(id.clone(), (nt.clone(), ty.clone()));
+                Some(())
+            },
+            Expr::Mux(_c, t, e) => {
+                t.set_type((pm, pg), ty)?;
+                e.set_type((pm, pg), ty)
+            },
+            Expr::Primop(_op, args) =>
+                args.iter_mut().try_for_each(|x| x.set_type((pm, pg), ty)),
+        }
+    }
+}
 
 impl<'a> TypeInference<&'a ModuleEnv> for Id {
     fn type_infer(&self, pm: &'a ModuleEnv) -> Option<Type> {
         pm.0.get(self).map(|x| x.1.clone())
+    }
+}
+
+impl TypeSet for Id {
+    fn set_type(&mut self, env: (&mut ModuleEnv, &mut GlobalEnv), ty: &Type) -> Option<()> {
+        todo!()
     }
 }
