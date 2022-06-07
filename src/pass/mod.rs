@@ -7,9 +7,11 @@ pub trait Pass<PM> {
     fn pass(&mut self, pm: PM);
 }
 
-pub trait AnaPass<PM> {
-    fn ana_pass(&self, pm: PM);
+/*
+pub trait StatePass<PM> {
+    fn state_pass(&mut self, pm: &mut PM);
 }
+ */
 
 pub trait PurePass<PM> {
     type Target;

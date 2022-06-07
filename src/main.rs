@@ -1,5 +1,6 @@
 use libyinglong::pass::gen_verilog::GenVerilog;
 use libyinglong::pass::type_infer::GlobalEnv;
+use libyinglong::pass::type_infer::TypeCheck;
 use libyinglong::ylir::*;
 use libyinglong::pass::*;
 use libyinglong::pass::gen_verilog;
@@ -7,7 +8,7 @@ use libyinglong::ylir::type_system::Type;
 use libyinglong::ylir::type_system::TypeBind;
 
 fn main() {
-    let r = Circuit {
+    let mut r = Circuit {
         pos: None,
         id: String::from("Circuit114514"),
         modules: vec![
@@ -45,7 +46,7 @@ fn main() {
     };
 
     let mut pm = GlobalEnv::default();
-    r.ana_pass(&mut pm);
+    r.type_check(&mut pm);
     println!("analysis:\n{:?}", pm);
 
     // let pm = GenVerilog();

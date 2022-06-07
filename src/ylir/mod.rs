@@ -29,6 +29,12 @@ pub struct Module {
     pub stmts: StmtGroup,
 }
 
+impl Module {
+    pub fn is_uninstenced(&self) -> bool {
+        self.ports.iter().any(|x| matches!(x.bind.1, Type::Uint(None) | Type::Sint(None)))
+    }
+}
+
 pub type Ports = Vec<Port>;
 
 #[derive(Debug, Clone, Eq, PartialEq)]
