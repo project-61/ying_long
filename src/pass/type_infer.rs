@@ -97,8 +97,11 @@ impl TypeCheck<(HashMap<Id, Type>, Circuit)> for Stmt {
             RawStmt::RegDef(bind, e, _append) => todo!(),
             RawStmt::MemDef(mem) => todo!(),
             RawStmt::Inst(module_name, inst_name) => {
-                let mut modu = env.1.modules.iter().find(|x| &x.id == module_name)
-                    .expect(format!("module {} not found", module_name).as_str()).clone();
+                let mut modu = env.1.modules
+                    .iter()
+                    .find(|x| &x.id == module_name)
+                    .expect(format!("module {} not found", module_name).as_str())
+                    .clone();
 
                 let rt = module_type_infer(&modu)?;
                 env.0.extend(rt);
@@ -112,10 +115,15 @@ impl TypeCheck<(HashMap<Id, Type>, Circuit)> for Stmt {
                     env.1.modules.push(modu);
                 }
 
-                todo!()
+                Ok((env.0, this, env.1))
             },
-            RawStmt::Node(id, expr) => todo!(),
-            RawStmt::Connect(epxr, expr) => todo!(),
+            RawStmt::Node(id, expr) => {
+                if let Some(x) = expr.type_check((&env.0, env.0.get(id).cloned()))? {
+                    env.0.insert(id.clone(), x);
+                }
+                Ok((env.0, this, env.1))
+            },
+            RawStmt::Connect(expr_left, expr_right) => todo!(),
             RawStmt::When(when) => todo!(),
             RawStmt::StmtGroup(sg) => {
                 let (a, b, c) = sg.type_check(env)?;
@@ -132,4 +140,28 @@ impl TypeCheck<(HashMap<Id, Type>, Circuit)> for Stmt {
 #[inline]
 fn module_type_infer(this: &Module) -> Result<HashMap<Id, Type>, ()> {
     this.ports.type_check(())
+}
+
+/*
+impl TypeInference<()> for Module {
+    fn type_infer(&self, _: ()) -> Option<Type> {
+        self.ports.type_check(())
+    }
+}
+ */
+
+ impl TypeCheck<(&HashMap<Id, Type>, Option<Type>)> for Expr {
+    type Target = Option<Type>;
+
+    fn type_check(&self, env: (&HashMap<Id, Type>, Option<Type>)) -> Result<Self::Target, ()> {
+        match self {
+            Expr::Literal(_) => todo!(),
+            Expr::Ref(_) => todo!(),
+            Expr::SubField(_, _) => todo!(),
+            Expr::SubIndex(_, _) => todo!(),
+            Expr::SubAccess(_, _) => todo!(),
+            Expr::Mux(_, _, _) => todo!(),
+            Expr::Primop(_, _) => todo!(),
+        }
+    }
 }
