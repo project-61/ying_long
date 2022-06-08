@@ -25,6 +25,7 @@ pub struct Circuit {
 pub struct Module {
     pub pos: PosInfoOpt,
     pub id: Id,
+    pub is_gen: bool,
     pub ports: Ports,
     pub stmts: StmtGroup,
 }
