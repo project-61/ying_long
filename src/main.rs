@@ -8,6 +8,7 @@ use libyinglong::ylir::type_system::Type;
 use libyinglong::ylir::type_system::TypeBind;
 
 fn main() {
+    /*
     let mut r = Circuit {
         pos: None,
         id: "Circuit114514".to_string(),
@@ -87,10 +88,48 @@ fn main() {
             }
         ],
     };
+     */
 
-    // let mut pm = GlobalEnv::default();
-    // r.type_check(&mut pm);
-    // println!("analysis:\n{:?}", pm);
+    let r = Circuit {
+        pos: None,
+        id: "Circuit114514".to_string(),
+        modules: vec![
+            Module {
+                pos: None,
+                is_gen: false,
+                id: "Add".to_string(),
+                ports: vec![
+                    Port {
+                        pos: None,
+                        dir: Dir::Input,
+                        bind: TypeBind("a".to_string(), Type::Uint(Some(32))),
+                    },
+                    Port {
+                        pos: None,
+                        dir: Dir::Input,
+                        bind: TypeBind("b".to_string(), Type::Uint(Some(32))),
+                    },
+                    Port {
+                        pos: None,
+                        dir: Dir::Output,
+                        bind: TypeBind("c".to_string(), Type::Uint(None)),
+                    }
+                ],
+                stmts: StmtGroup(vec![
+                    Stmt {
+                        pos: None,
+                        raw_stmt: RawStmt::Node(
+                            "c".to_string(),
+                            Expr::Primop(Primop::Add, vec![Expr::Ref("a".to_string()), Expr::Ref("b".to_string())]),
+                        )
+                    }
+                ])
+            }
+        ],
+    };
+
+    let ana_out = r.type_check(());
+    println!("analysis:\n{:?}", ana_out);
 
     // let pm = GenVerilog();
     // let out = r.pure_pass(&pm);
