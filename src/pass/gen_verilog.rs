@@ -3,182 +3,185 @@ use std::fmt::format;
 
 use rayon::prelude::*;
 
-use crate::ylir::*;
-use crate::ylir::type_system::*;
-use super::PurePass;
 use super::type_infer::GlobalEnv;
+use super::PurePass;
+use crate::ylir::type_system::*;
+use crate::ylir::*;
 
+// pub struct GenVerilog(pub GlobalEnv);
 
-pub struct GenVerilog(pub GlobalEnv);
+pub trait GenVerilog {
+    fn gen_verilog(&self, env: &GlobalEnv) -> String;
+}
 
+impl GenVerilog for Circuit {
 
-impl PurePass<&GenVerilog> for Circuit {
-    type Target = String;
-
-    fn pure_pass(&self, pm: &GenVerilog) -> Self::Target {
+    fn gen_verilog(&self, pm: &GlobalEnv) -> String {
         self.modules
             .par_iter()
-            .map(|i| i.pure_pass(pm))
+            .map(|i| i.gen_verilog(pm))
             .collect::<Vec<_>>()
             .join("\n\n")
     }
 }
 
-impl PurePass<&GenVerilog> for Module {
-    type Target = String;
+impl GenVerilog for Module {
 
-    fn pure_pass(&self, pm: &GenVerilog) -> Self::Target {
+    fn gen_verilog(&self, pm: &GlobalEnv) -> String {
         format!(
             "module {} (\n{}\n\t);\n{}endmodule;",
             self.id,
-            self.ports.pure_pass(pm),
-            self.stmts.pure_pass(pm)
+            self.ports.gen_verilog(pm),
+            self.stmts.gen_verilog(pm)
         )
     }
 }
 
+impl GenVerilog for Ports {
 
-impl PurePass<&GenVerilog> for Ports {
-    type Target = String;
-
-    fn pure_pass(&self, pm: &GenVerilog) -> Self::Target {
+    fn gen_verilog(&self, pm: &GlobalEnv) -> String {
         self.par_iter()
-            .map(|p| p.pure_pass(pm))
+            .map(|p| p.gen_verilog(pm))
             // .collect()
-            .collect::<Vec<_>>().join(",\n")
+            .collect::<Vec<_>>()
+            .join(",\n")
     }
 }
 
-
-impl PurePass<&GenVerilog> for Port {
-    type Target = String;
-
-    fn pure_pass(&self, pm: &GenVerilog) -> Self::Target {
+impl GenVerilog for Port {
+    fn gen_verilog(&self, env: &GlobalEnv) -> String {
         let dir = match self.dir {
             Dir::Input => "input",
             Dir::Output => "output",
+            Dir::Inout => "inout",
         };
-        format!("\t{} {}", dir, self.bind.pure_pass(pm))
+        format!("\t{} {}", dir, self.bind.gen_verilog(env))
     }
 }
 
-
-impl PurePass<&GenVerilog> for StmtGroup {
-    type Target = String;
-
-    fn pure_pass(&self, pm: &GenVerilog) -> Self::Target {
-        self.0.par_iter()
-            .map(|s| s.pure_pass(pm))
-            .collect()
-            // .collect::<Vec<_>>().join("\n")
+impl GenVerilog for StmtGroup {
+    fn gen_verilog(&self, pm: &GlobalEnv) -> String {
+        self.0.par_iter().map(|s| s.gen_verilog(pm)).collect()
+        // .collect::<Vec<_>>().join("\n")
     }
 }
 
-
-impl PurePass<&GenVerilog> for Stmt {
-    type Target = String;
-
-    fn pure_pass(&self, pm: &GenVerilog) -> Self::Target {
-        format!("{}\t{}\n", self.raw_stmt.pure_pass(pm), self.pos.pure_pass(pm))
+impl GenVerilog for Stmt {
+    fn gen_verilog(&self, pm: &GlobalEnv) -> String {
+        format!(
+            "{}\t{}\n",
+            self.raw_stmt.gen_verilog(pm),
+            self.pos.gen_verilog(pm)
+        )
     }
 }
 
-
-impl PurePass<&GenVerilog> for RawStmt {
-    type Target = String;
-
-    fn pure_pass(&self, pm: &GenVerilog) -> Self::Target {
+impl GenVerilog for RawStmt {
+    fn gen_verilog(&self, pm: &GlobalEnv) -> String {
         match self {
-            RawStmt::WireDef(w) => w.pure_pass(pm),
+            RawStmt::WireDef(w) => w.gen_verilog(pm),
             RawStmt::RegDef(bind, value, append) => todo!(),
             RawStmt::MemDef(memdef) => todo!(),
             RawStmt::Inst(name, value) => todo!(),
-            RawStmt::Node(name, value) => format!("\tassign {} = {};", name, value.pure_pass(pm)),
+            RawStmt::Node(name, value) => format!("\tassign {} = {};", name, value.gen_verilog(pm)),
             RawStmt::Connect(a, b) => todo!(),
-            RawStmt::When(w) => w.pure_pass(pm),
-            RawStmt::StmtGroup(sg) => sg.pure_pass(pm),
+            RawStmt::When(w) => w.gen_verilog(pm),
+            RawStmt::StmtGroup(sg) => sg.gen_verilog(pm),
         }
     }
 }
 
-
-impl PurePass<&GenVerilog> for Expr {
-    type Target = String;
-
-    fn pure_pass(&self, pm: &GenVerilog) -> Self::Target {
+impl GenVerilog for Expr {
+    fn gen_verilog(&self, pm: &GlobalEnv) -> String {
         match self {
-            Expr::Literal(_) => todo!(),
+            Expr::Literal(literal) => todo!(),
             Expr::Ref(id) => id.clone(),
-            Expr::SubField(_, _) => todo!(),
-            Expr::SubIndex(_, _) => todo!(),
-            Expr::SubAccess(_, _) => todo!(),
-            Expr::Mux(cond, then, else_) =>
-                format!("{} ? {} : {}", cond.pure_pass(pm), then.pure_pass(pm), else_.pure_pass(pm)),
+            Expr::SubField(expr, sf) => todo!(),
+            Expr::SubIndex(expr, si) => todo!(),
+            Expr::SubAccess(expr, sa) => todo!(),
+            Expr::Mux(cond, then, else_) => format!(
+                "{} ? {} : {}",
+                cond.gen_verilog(pm),
+                then.gen_verilog(pm),
+                else_.gen_verilog(pm)
+            ),
             // Expr::Validif(_, _) => todo!(),
             Expr::Primop(op, params) => match op {
-                Primop::Add     => format!("{} + {}", params[0].pure_pass(pm), params[1].pure_pass(pm)),
-                Primop::Sub     => format!("{} - {}", params[0].pure_pass(pm), params[1].pure_pass(pm)),
-                Primop::Mul     => format!("{} * {}", params[0].pure_pass(pm), params[1].pure_pass(pm)),
-                Primop::Div     => format!("{} / {}", params[0].pure_pass(pm), params[1].pure_pass(pm)),
-                Primop::Mod     => format!("{} % {}", params[0].pure_pass(pm), params[1].pure_pass(pm)),
-                Primop::Lt      => format!("{} < {}", params[0].pure_pass(pm), params[1].pure_pass(pm)),
-                Primop::Gt      => format!("{} > {}", params[0].pure_pass(pm), params[1].pure_pass(pm)),
-                Primop::Leq     => format!("{} <= {}", params[0].pure_pass(pm), params[1].pure_pass(pm)),
-                Primop::Geq     => format!("{} >= {}", params[0].pure_pass(pm), params[1].pure_pass(pm)),
-                Primop::Eq      => format!("{} == {}", params[0].pure_pass(pm), params[1].pure_pass(pm)),
-                Primop::Neq     => format!("{} != {}", params[0].pure_pass(pm), params[1].pure_pass(pm)),
-                Primop::AsUInt  => todo!(),
-                Primop::AsSInt  => todo!(),
+                Primop::Add => format!("{} + {}", params[0].gen_verilog(pm), params[1].gen_verilog(pm)),
+                Primop::Sub => format!("{} - {}", params[0].gen_verilog(pm), params[1].gen_verilog(pm)),
+                Primop::Mul => format!("{} * {}", params[0].gen_verilog(pm), params[1].gen_verilog(pm)),
+                Primop::Div => format!("{} / {}", params[0].gen_verilog(pm), params[1].gen_verilog(pm)),
+                Primop::Mod => format!("{} % {}", params[0].gen_verilog(pm), params[1].gen_verilog(pm)),
+                Primop::Lt => format!("{} < {}", params[0].gen_verilog(pm), params[1].gen_verilog(pm)),
+                Primop::Gt => format!("{} > {}", params[0].gen_verilog(pm), params[1].gen_verilog(pm)),
+                Primop::Leq => {
+                    format!("{} <= {}", params[0].gen_verilog(pm), params[1].gen_verilog(pm))
+                }
+                Primop::Geq => {
+                    format!("{} >= {}", params[0].gen_verilog(pm), params[1].gen_verilog(pm))
+                }
+                Primop::Eq => format!("{} == {}", params[0].gen_verilog(pm), params[1].gen_verilog(pm)),
+                Primop::Neq => {
+                    format!("{} != {}", params[0].gen_verilog(pm), params[1].gen_verilog(pm))
+                }
+                Primop::AsUInt => todo!(),
+                Primop::AsSInt => todo!(),
                 Primop::AsClock => todo!(),
                 // Following four depend on the type system
-                Primop::Pad     => todo!(),
-                Primop::Shl     => todo!(), //format!("{} << {}", params[0].pure_pass(pm), params[1].pure_pass(pm)),
-                Primop::Shr     => todo!(), //format!("{} >> {}", params[0].pure_pass(pm), params[1].pure_pass(pm)),
+                Primop::Pad => todo!(),
+                Primop::Shl => todo!(), //format!("{} << {}", params[0].gen_verilog(pm), params[1].gen_verilog(pm)),
+                Primop::Shr => todo!(), //format!("{} >> {}", params[0].gen_verilog(pm), params[1].gen_verilog(pm)),
                 // Primop::Dshl    => todo!(),
                 // Primop::Dshr    => todo!(),
-                Primop::Cvt     => todo!(),
-                Primop::Neg     => format!("-{}", params[0].pure_pass(pm)),
-                Primop::Not     => format!("~{}", params[0].pure_pass(pm)),
-                Primop::And     => format!("{} & {}", params[0].pure_pass(pm), params[1].pure_pass(pm)),
-                Primop::Or      => format!("{} | {}", params[0].pure_pass(pm), params[1].pure_pass(pm)),
-                Primop::Xor     => format!("{} ^ {}", params[0].pure_pass(pm), params[1].pure_pass(pm)),
-                Primop::Andr    => format!("&{}", params[0].pure_pass(pm)),
-                Primop::Orr     => format!("|{}", params[0].pure_pass(pm)),
-                Primop::Xorr    => format!("^{}", params[0].pure_pass(pm)),
-                Primop::Cat     => format!("{{{}, {}}}", params[0].pure_pass(pm), params[1].pure_pass(pm)),
-                Primop::Bits    => format!("{}[{}:{}]", params[0].pure_pass(pm), params[1].pure_pass(pm), params[2].pure_pass(pm)),
+                Primop::Cvt => todo!(),
+                Primop::Neg => format!("-{}", params[0].gen_verilog(pm)),
+                Primop::Not => format!("~{}", params[0].gen_verilog(pm)),
+                Primop::And => format!("{} & {}", params[0].gen_verilog(pm), params[1].gen_verilog(pm)),
+                Primop::Or => format!("{} | {}", params[0].gen_verilog(pm), params[1].gen_verilog(pm)),
+                Primop::Xor => format!("{} ^ {}", params[0].gen_verilog(pm), params[1].gen_verilog(pm)),
+                Primop::Andr => format!("&{}", params[0].gen_verilog(pm)),
+                Primop::Orr => format!("|{}", params[0].gen_verilog(pm)),
+                Primop::Xorr => format!("^{}", params[0].gen_verilog(pm)),
+                Primop::Cat => format!(
+                    "{{{}, {}}}",
+                    params[0].gen_verilog(pm),
+                    params[1].gen_verilog(pm)
+                ),
+                Primop::Bits => format!(
+                    "{}[{}:{}]",
+                    params[0].gen_verilog(pm),
+                    params[1].gen_verilog(pm),
+                    params[2].gen_verilog(pm)
+                ),
                 // Primop::Head    => todo!(),
-                // Primop::Tail    => format!("{}[{}:0]", params[0].pure_pass(pm), params[1].pure_pass(pm), params[2].pure_pass(pm)),
+                // Primop::Tail    => format!("{}[{}:0]", params[0].gen_verilog(pm), params[1].gen_verilog(pm), params[2].gen_verilog(pm)),
             },
         }
     }
 }
 
-impl PurePass<&GenVerilog> for When {
-    type Target = String;
-
-    fn pure_pass(&self, pm: &GenVerilog) -> Self::Target {
+impl GenVerilog for When {
+    fn gen_verilog(&self, pm: &GlobalEnv) -> String {
         if self.else_.is_none() {
-            format!("\tif ({})\n\t\t{}\tend",
-                self.cond.pure_pass(pm),
-                self.then.pure_pass(pm)
+            format!(
+                "\tif ({})\n\t\t{}\tend",
+                self.cond.gen_verilog(pm),
+                self.then.gen_verilog(pm)
             )
         } else {
-            format!("\tif ({})\n\t\t{}\n\telse\n\t\t{}\n\tend",
-                self.pure_pass(pm),
-                self.then.pure_pass(pm),
-                self.else_.as_ref().unwrap().pure_pass(pm)
+            format!(
+                "\tif ({})\n\t\t{}\n\telse\n\t\t{}\n\tend",
+                self.gen_verilog(pm),
+                self.then.gen_verilog(pm),
+                self.else_.as_ref().unwrap().gen_verilog(pm)
             )
         }
     }
 }
 
-
-impl PurePass<&GenVerilog> for TypeBind {
-    type Target = String;
-
-    fn pure_pass(&self, pm: &GenVerilog) -> Self::Target {
-        let size = self.1.get_width().expect("error: width is unknown");
+impl GenVerilog for TypeBind {
+    fn gen_verilog(&self, pm: &GlobalEnv) -> String {
+        let size = self.1.get_width();
         if size == 0 {
             println!("warning: width is 0");
             return "".to_string();
@@ -190,21 +193,17 @@ impl PurePass<&GenVerilog> for TypeBind {
     }
 }
 
-impl PurePass<&GenVerilog> for PosInfoOpt {
-    type Target = String;
-
-    fn pure_pass(&self, pm: &GenVerilog) -> Self::Target {
+impl GenVerilog for PosInfoOpt {
+    fn gen_verilog(&self, pm: &GlobalEnv) -> String {
         match self {
             PosInfoOpt::None => "".to_string(),
-            PosInfoOpt::Some(pos) => pos.pure_pass(pm),
+            PosInfoOpt::Some(pos) => pos.gen_verilog(pm),
         }
     }
 }
 
-impl PurePass<&GenVerilog> for PosInfo {
-    type Target = String;
-
-    fn pure_pass(&self, pm: &GenVerilog) -> Self::Target {
+impl GenVerilog for PosInfo {
+    fn gen_verilog(&self, pm: &GlobalEnv) -> String {
         // fixme
         format!("@[\"{}\":{:?}:{:?}]", self.file, self.line, self.col)
     }

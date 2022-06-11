@@ -1,257 +1,194 @@
 use std::collections::HashMap;
 
-use crate::{ylir::{type_system::Type, *}, utils::gen_id};
+use crate::ylir::{
+    type_system::{Type, TypeBind},
+    *,
+};
 
+#[derive(Debug, Clone, Eq, PartialEq, Default)]
+pub struct GlobalEnv(pub HashMap<Id, Module>);
 
-pub struct GlobalEnv();
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum NodeType {
+    Port(Dir),
+    Wire,
+    Reg,
+    Inst,
+}
 
+#[derive(Debug, Clone, PartialEq, Eq, Default)]
+pub struct ModuleEnv(pub HashMap<Id, (Dir, TypeBind)>);
 
 pub trait TypeCheck<T> {
     type Target;
-    fn type_check(&self, env: T) -> Result<Self::Target, ()>;
 
+    fn type_check(&self, env: T) -> Result<Self::Target, ()>;
 }
 
 pub trait TypeInference<T> {
-    fn type_infer(&self, env: T) -> Option<Type>;
-}
+    type Target;
 
+    fn type_infer(&self, env: T) -> Self::Target;
+}
 
 impl TypeCheck<()> for Circuit {
-    type Target = Circuit;
+    type Target = GlobalEnv;
     fn type_check(&self, _: ()) -> Result<Self::Target, ()> {
         // let mut old_r = ;
-        let mut r = self.clone();
+        let genv: HashMap<Id, Module> = self
+            .modules
+            .iter()
+            .map(|modu| (modu.id.clone(), modu.clone()))
+            .collect();
+        let genv = GlobalEnv(genv);
         for i in &self.modules {
-            // if r.is_some() {
-                // old_r = r.clone();
-                r = i.type_check(r)?;
-            // } else {
-                // return Ok(old_r);
-            // }
+            i.type_check(&genv)?;
         }
-        Ok(r)
+        Ok(genv)
     }
 }
 
-impl TypeCheck<Circuit> for Module {
-    type Target = Circuit;
+impl TypeCheck<&GlobalEnv> for Module {
+    type Target = ();
 
-    fn type_check(&self, env: Circuit) -> Result<Self::Target, ()> {
-        let mut this = self.clone();
-        let ty_env = self.ports.type_check(())?;
-        let (rt, sg, mut root) = self.stmts.type_check((ty_env, env))?;
-        this.stmts = sg;
-        apply_rt_for_module(&mut this, dbg!(&rt));
-        let modu = root.modules.iter_mut().find(|modu| modu.id == self.id).unwrap();
-        *modu = this;
-        Ok(root)
-    }
-}
-
-fn apply_rt_for_module(modu: &mut Module, rt: &HashMap<Id, Type>) {
-    for Stmt { raw_stmt, .. } in modu.stmts.0.iter_mut() {
-        match raw_stmt {
-            RawStmt::WireDef(bind) |
-            RawStmt::RegDef(bind, _, _) => {
-                if let Some(rt) = rt.get(&bind.0) {
-                    bind.1 = rt.clone();
+    fn type_check(&self, genv: &GlobalEnv) -> Result<Self::Target, ()> {
+        let mut env = ModuleEnv(
+            self.ports
+                .type_infer(())
+                .into_iter()
+                .map(|x| (x.0, (-x.1 .0, x.1 .1)))
+                .collect(),
+        );
+        for i in self.stmts.0.iter().filter(|x| {
+            matches!(
+                x.raw_stmt,
+                RawStmt::WireDef(_) | RawStmt::RegDef(_, _, _) | RawStmt::MemDef(_)
+            )
+        }) {
+            match &i.raw_stmt {
+                RawStmt::WireDef(bind) => {
+                    env.0.insert(bind.0.clone(), (Dir::Inout, bind.clone()));
                 }
-            }
-            RawStmt::MemDef(Mem { id, data_type, ..}) => {
-                if let Some(rt) = rt.get(id) {
-                    *data_type = rt.clone();
+                RawStmt::RegDef(bind, cls, rst) => {
+                    env.0.insert(bind.0.clone(), (Dir::Output, bind.clone()));
+                    todo!()
                 }
+                RawStmt::MemDef(mem) => {
+                    env.0.insert(
+                        mem.id.clone(),
+                        (Dir::Output, TypeBind(mem.id.clone(), mem.data_type.clone())),
+                    );
+                    // todo
+                }
+                RawStmt::Inst(mod_name, inst_name) => {
+                    let modu = genv
+                        .0
+                        .get(mod_name)
+                        .expect(&format!("module is not defined: {}", mod_name));
+                    let r = modu.ports.type_infer(());
+                }
+                _ => unreachable!(),
             }
-            _ => return,
         }
-    }
-    for i in modu.ports.iter_mut() {
-        if let Some(rt) = rt.get(&i.bind.0) {
-            i.bind.1 = rt.clone();
-        }
+        self.stmts.type_check((env, &genv)); // fixme
+        Ok(())
     }
 }
 
-impl TypeCheck<()> for Ports {
-    type Target = HashMap<Id, Type>;
+impl TypeInference<()> for Ports {
+    type Target = HashMap<Id, (Dir, TypeBind)>;
 
-    fn type_check(&self, _: ()) -> Result<Self::Target, ()> {
-        self.iter().map(|x| x.type_check(())).collect()
+    fn type_infer(&self, _: ()) -> Self::Target {
+        self.iter()
+            .map(|x| {
+                let r = x.type_infer(());
+                (x.bind.0.clone(), r)
+            })
+            .collect()
     }
 }
-impl TypeCheck<()> for Port {
-    type Target = (Id, Type);
 
-    fn type_check(&self, _: ()) -> Result<Self::Target, ()> {
-        Ok((self.bind.0.clone(), self.bind.1.clone()))
+impl TypeInference<()> for Port {
+    type Target = (Dir, TypeBind);
+
+    fn type_infer(&self, _: ()) -> Self::Target {
+        (self.dir, self.bind.clone())
     }
 }
 
-impl TypeCheck<(HashMap<Id, Type>, Circuit)> for StmtGroup {
-    type Target = (HashMap<Id, Type>, Self, Circuit);
+impl TypeCheck<(ModuleEnv, &GlobalEnv)> for StmtGroup {
+    type Target = ModuleEnv;
 
-    fn type_check(&self, env: (HashMap<Id, Type>, Circuit)) -> Result<Self::Target, ()> {
-        // let mut old_r = env;
-        let mut r = env;
-        let mut sg = vec![];
+    fn type_check(&self, (mut env, genv): (ModuleEnv, &GlobalEnv)) -> Result<Self::Target, ()> {
         for i in self.0.iter() {
-            // if r.1.is_some() {
-                // old_r = r.clone();
-                let (ty_env, stmt, top) =
-                    i.type_check(r)?;
-                sg.push(stmt);
-                r = (ty_env, top);
-            // } else {
-                // return Ok((old_r.0, StmtGroup(sg), old_r.1));
-            // }
+            env = i.type_check((env, genv))?;
         }
-        Ok((r.0, StmtGroup(sg), r.1))
+        Ok(env)
     }
 }
 
-impl TypeCheck<(HashMap<Id, Type>, Circuit)> for Stmt {
-    type Target = (HashMap<Id, Type>, Self, Circuit);
+impl TypeCheck<(ModuleEnv, &GlobalEnv)> for Stmt {
+    type Target = ModuleEnv;
 
-    fn type_check(&self, mut env: (HashMap<Id, Type>, Circuit)) -> Result<Self::Target, ()> {
-        let mut this = self.clone();
-        match &mut this.raw_stmt {
-            RawStmt::WireDef(bind) => {
-                env.0.insert(bind.0.clone(), bind.1.clone());
-                Ok((env.0, this, env.1))
-            },
-            RawStmt::RegDef(bind, e, _append) => todo!(),
-            RawStmt::MemDef(mem) => todo!(),
-            RawStmt::Inst(module_name, inst_name) => {
-                let mut modu = env.1.modules
-                    .iter()
-                    .find(|x| &x.id == module_name)
-                    .expect(format!("module {} not found", module_name).as_str())
-                    .clone();
+    fn type_check(&self, (mut env, genv): (ModuleEnv, &GlobalEnv)) -> Result<Self::Target, ()> {
+        match &self.raw_stmt {
+            RawStmt::Node(left, right) => {
+                let lt = env.0.get(left).unwrap();
+                let rt = env.0.get(left).unwrap(); // fixme
 
-                let rt = module_type_infer(&modu)?;
-                env.0.extend(rt);
-
-                if !modu.is_gen && modu.is_uninstenced() {
-                    let new_id = format!("{}$${}", modu.id, gen_id());
-                    *module_name = new_id.clone();
-
-                    modu.id = new_id;
-                    modu.is_gen = true;
-                    env.1.modules.push(modu);
-                }
-
-                Ok((env.0, this, env.1))
-            },
-            RawStmt::Node(id, expr) => {
-                /*
-                match expr.type_check((&env.0, env.0.get(id).cloned()))? {
-                    (Some(x), env, e) => {
-                        env.0.insert(id.clone(), x);
-                        *expr = e;
-                    },
-                    (None, e) => {
-                        *expr = e;
-                    }
-                }
-                 */
-                let (_, re, e) = expr.type_check((&env.0, env.0.get(id).cloned()))?;
-                *expr = e;
-                Ok((re, this, env.1))
-            },
-            RawStmt::Connect(expr_left, expr_right) => {
-                let (right_type, re, e) = expr_right.type_check((&env.0, None))?;
-                *expr_right = e;
-                let (_left_type, re, e) = expr_left.type_check((&re, right_type))?;
-                *expr_left = e;
-                Ok((re, this, env.1))
-            },
+                todo!()
+            }
+            RawStmt::Connect(a, b) => {
+                todo!()
+            }
             RawStmt::When(when) => todo!(),
-            RawStmt::StmtGroup(sg) => {
-                let (a, b, c) = sg.type_check(env)?;
-                Ok((a, Stmt {
-                    pos: self.pos.clone(),
-                    raw_stmt: RawStmt::StmtGroup(b),
-                }, c))
-            },
+            RawStmt::StmtGroup(_) => todo!(),
+            _ => Ok(env),
         }
     }
 }
 
+impl TypeInference<&ModuleEnv> for Expr {
+    type Target = (Option<Dir>, Type);
 
-#[inline]
-fn module_type_infer(this: &Module) -> Result<HashMap<Id, Type>, ()> {
-    this.ports.type_check(())
-}
-
-/*
-impl TypeInference<()> for Module {
-    fn type_infer(&self, _: ()) -> Option<Type> {
-        self.ports.type_check(())
-    }
-}
- */
-
- impl TypeCheck<(&HashMap<Id, Type>, Option<Type>)> for Expr {
-    type Target = (Option<Type>, HashMap<Id, Type>, Self);
-
-    fn type_check(&self, env: (&HashMap<Id, Type>, Option<Type>)) -> Result<Self::Target, ()> {
-        let mut this = self.clone();
-        match &mut this {
-            Expr::Literal(li) => {
-                let rt = if let Some(x) = env.1 {
-                    li.tp.unify(&x)
-                } else {
-                    Some(li.tp.clone())
-                };
-                Ok((rt, env.0.clone(), this))
+    fn type_infer(&self, env: &ModuleEnv) -> Self::Target {
+        match self {
+            Expr::Literal(a) => (Some(Dir::Input), a.typ.clone()),
+            Expr::Ref(id) => {
+                let r = env
+                    .0
+                    .get(id)
+                    .expect(&format!("name is not defined: {}", id));
+                (Some(r.0), r.1 .1.clone())
             },
-            Expr::Ref(id) =>
-                if let Ok(rt) = id.type_check((env.0, env.1)) { Ok((rt, env.0.clone(), this)) } else { Err(()) },
-            Expr::SubField(parent, sf) => {
-                /*
-                if Some(src_type) = env.1 {
+            Expr::SubField(e, sf) => {
+                let (dir, ty) = e.type_infer(env);
 
-                }
-                let (rt, env, _) = parent.type_check((env.0, None))?;
-
-                rt
-                 */
+                let ty = ty.get_bundle().expect("subfield expr is not bundle");
+                let r = ty.0.get(sf).unwrap();
+                // (r.is_flip, r.1.clone())
                 todo!()
             },
-            Expr::SubIndex(parent, si) => todo!(),
-            Expr::SubAccess(parent, sa) => todo!(),
-            Expr::Mux(c, t, e) => {
-                let (_, env, rc) = c.type_check(
-                    (env.0, Some(Type::Uint(Some(1)))))?;
-                *c = Box::new(rc);
-                let (rt, env, te) = t.type_check((&env, None))?;
-                *t = Box::new(te);
-                let (rt, env, ee) = t.type_check((&env, None))?;
-                *e = Box::new(ee);
+            Expr::SubIndex(e, si) => e.type_infer(env),
+            Expr::SubAccess(e, sa) => {
+                let (dir, left_ty) = e.type_infer(env);
+
+                let (dir, right_ty) = sa.type_infer(env);
+                // assert!(dir.is_output(), "expr is not output");
+
+
                 todo!()
-            },
-            Expr::Primop(_op, args) => {
-                let mut unify_type = env.1;
-                let mut ret_args = vec![];
-                let mut env = env.0.clone();
-                for i in args.iter() {
-                    let (rt, renv, e) = i.type_check((&env, unify_type))?;
-                    env = renv;
-                    unify_type = rt;
-                    ret_args.push(e);
-                }
-                *args = ret_args;
-                Ok((unify_type, env, this))
-            },
+            }
+            Expr::Mux(c, t, e) => todo!(),
+            Expr::Primop(_, args) => todo!(),
         }
     }
 }
 
-impl TypeCheck<(&HashMap<Id, Type>, Option<Type>)> for Id {
-    type Target = Option<Type>;
+impl TypeInference<&ModuleEnv> for Id {
+    type Target = Result<(Dir, TypeBind), ()>;
 
-    fn type_check(&self, env: (&HashMap<Id, Type>, Option<Type>)) -> Result<Self::Target, ()> {
-        Ok(env.0.get(self).cloned())
+    fn type_infer(&self, env: &ModuleEnv) -> Self::Target {
+        env.0.get(self).map_or(Err(()), |x| Ok(x.clone()))
     }
 }

@@ -4,7 +4,6 @@ use lazy_static::lazy_static;
 
 use crate::ylir::Id;
 
-
 lazy_static! {
     pub static ref UNNAME_ID: Mutex<usize> = Mutex::new(0);
 }

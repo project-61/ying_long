@@ -1,16 +1,15 @@
 // use std::cell::RefCell;
 
-use self::type_system::{TypeBind, Type};
+use std::ops::Neg;
+
+use self::type_system::{Type, TypeBind};
 
 pub mod type_system;
 // pub mod parse;
 
-
 pub trait GetWidth {
-    fn get_width(&self) -> Option<usize>;
+    fn get_width(&self) -> usize;
 }
-
-
 
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub struct Circuit {
@@ -20,21 +19,23 @@ pub struct Circuit {
     // pub symbol_table: RefCell<HashMap<Id, usize>>,
 }
 
-
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub struct Module {
     pub pos: PosInfoOpt,
     pub id: Id,
-    pub is_gen: bool,
+    // pub is_gen: bool,
     pub ports: Ports,
     pub stmts: StmtGroup,
 }
 
+/*
 impl Module {
+
     pub fn is_uninstenced(&self) -> bool {
-        self.ports.iter().any(|x| matches!(x.bind.1, Type::Uint(None) | Type::Sint(None)))
+        self.ports.iter().any(|x| matches!(x.bind.1, Type::Uint(_) | Type::Sint(_)))
     }
 }
+*/
 
 pub type Ports = Vec<Port>;
 
@@ -45,22 +46,51 @@ pub struct Port {
     pub bind: TypeBind,
 }
 
-
-#[derive(Debug, Clone, Eq, PartialEq)]
+#[repr(u8)]
+#[derive(Debug, Clone, Copy, Eq, PartialEq)]
 pub enum Dir {
-    Input,
-    Output,
+    Input = 01,
+    Output = 10,
+    Inout = 11,
 }
 
+impl Neg for Dir {
+    type Output = Self;
 
+    fn neg(self) -> Self {
+        match self {
+            Dir::Input => Dir::Output,
+            Dir::Output => Dir::Input,
+            Dir::Inout => Dir::Inout,
+        }
+    }
+}
 
+impl Dir {
+    #[inline(always)]
+    pub fn is_input(self) -> bool {
+        let r = self as u8 & Dir::Input as u8;
+        r != 0
+    }
+
+    #[inline(always)]
+    pub fn is_output(self) -> bool {
+        let r = self as u8 & Dir::Output as u8;
+        r != 0
+    }
+
+    #[inline(always)]
+    pub fn is_inout(self) -> bool {
+        let r = self as u8 & Dir::Inout as u8;
+        r != 0
+    }
+}
 
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub struct Stmt {
     pub pos: PosInfoOpt,
     pub raw_stmt: RawStmt,
 }
-
 
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub enum RawStmt {
@@ -78,10 +108,6 @@ pub enum RawStmt {
     // Stop(Stop),
     // Skip,
 }
-
-
-
-
 
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub enum Expr {
@@ -113,7 +139,6 @@ impl Expr {
 
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub struct StmtGroup(pub Vec<Stmt>);
-
 
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub struct Mem {
@@ -152,7 +177,7 @@ pub struct Printf(pub Expr, pub Expr, pub String, pub Vec<Expr>);
 
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub struct Literal {
-    pub tp: Type,
+    pub typ: Type,
     pub value: LiteralValue,
 }
 
@@ -198,7 +223,6 @@ pub enum Primop {
     // Tail,
 }
 
-
 #[derive(Debug, Clone, Eq, PartialEq, PartialOrd, Ord, Hash)]
 pub struct PosInfo {
     pub file: String,
@@ -207,12 +231,10 @@ pub struct PosInfo {
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, PartialOrd, Ord, Hash)]
-pub struct Line (pub usize);
+pub struct Line(pub usize);
 #[derive(Debug, Clone, Eq, PartialEq, PartialOrd, Ord, Hash)]
 pub struct Col(pub usize);
 
 pub type PosInfoOpt = Option<PosInfo>;
-
-
 
 pub type Id = String;

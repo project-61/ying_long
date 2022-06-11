@@ -2,11 +2,8 @@ use crate::ylir::*;
 
 use super::Pass;
 
-
-
 #[derive(Debug, Default)]
 pub struct SimFilter();
-
 
 impl Pass<&mut SimFilter> for Circuit {
     fn pass(&mut self, pm: &mut SimFilter) {
@@ -24,7 +21,8 @@ impl Pass<&mut SimFilter> for Module {
 }
 
 fn filter(stmt: &&Stmt) -> bool {
-    matches!(stmt.raw_stmt,
+    matches!(
+        stmt.raw_stmt,
         RawStmt::WireDef(_)             |
         RawStmt::RegDef(_, _, _)        |
         RawStmt::MemDef(_)              |

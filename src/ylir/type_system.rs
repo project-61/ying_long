@@ -1,17 +1,18 @@
-use super::{GetWidth, Id};
+use std::{collections::HashMap, ops::Neg};
 
-
+use super::{Dir, GetWidth, Id};
 
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub enum Type {
     Clock,
-    Uint(SizeOpt),
-    Sint(SizeOpt),
+    Uint(usize),
+    Sint(usize),
     Vector(Vector),
     Bundle(Bundle),
 }
 
 impl Type {
+    /*
     pub fn unify(&self, other: &Self) -> Option<Type> {
         match (self, other) {
             (r@Type::Uint(Some(sz)), Type::Uint(Some(sz1))) => {
@@ -33,6 +34,7 @@ impl Type {
             _ => return None,
         }
     }
+     */
 
     pub fn get_vector(&self) -> Option<&Vector> {
         match self {
@@ -50,20 +52,20 @@ impl Type {
 }
 
 impl GetWidth for Type {
-    fn get_width(&self) -> Option<usize> {
+    fn get_width(&self) -> usize {
         match self {
-            Type::Clock => Some(1),
-            Type::Uint(s) => s.clone(),
-            Type::Sint(s) => s.clone(),
-            Type::Vector(Vector(t, s)) => t.get_width().map(|w| w*s),
-            Type::Bundle(Bundle(f)) => f.iter().map(|f| f.get_width()).sum(),
+            Type::Clock => 1,
+            Type::Uint(s) | Type::Sint(s) => s.clone(),
+            Type::Vector(Vector(t, s)) => t.get_width() * s,
+            Type::Bundle(Bundle(f)) => f.iter().map(|(_, f)| f.get_width()).sum(),
         }
     }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Vector (pub Box<Type>, pub VecSize);
+pub struct Vector(pub Box<Type>, pub VecSize);
 
+/*
 impl Vector {
     fn unify(&self, other: &Self) -> Option<Self> {
         let t = self.0.as_ref().unify(other.0.as_ref())?;
@@ -73,48 +75,63 @@ impl Vector {
         Some(Vector(Box::new(t), self.1))
     }
 }
+ */
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Bundle (pub Vec<Field>);
-
-impl Bundle {
-    fn unify(&self, other: &Self) -> Option<Self> {
-        // let t = self.0.as_ref().unify(&other.0.as_ref())?;
-        // todo: return None
-        todo!()
-    }
-}
+pub struct Bundle(pub HashMap<Id, Field>);
 
 impl Bundle {
     pub fn get_field(&self, id: &Id) -> Option<&Field> {
-        self.0.iter().find(|f| f.bind.0 == *id)
+        self.0.get(id)
+    }
+}
+
+impl Neg for Bundle {
+    type Output = Self;
+
+    fn neg(self) -> Self::Output {
+        Bundle(
+            self.0
+                .iter()
+                .map(|(id, f)| (id.clone(), f.clone().neg()))
+                .collect(),
+        )
     }
 }
 
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub struct Field {
-    pub is_flip: IsFlip,
+    pub is_flip: bool,
     pub bind: TypeBind,
 }
 
 impl GetWidth for Field {
-    fn get_width(&self) -> Option<usize> {
+    fn get_width(&self) -> usize {
         self.bind.get_width()
     }
 }
 
+impl Neg for Field {
+    type Output = Self;
+
+    fn neg(self) -> Self::Output {
+        Field {
+            is_flip: !self.is_flip,
+            bind: self.bind,
+        }
+    }
+}
 
 #[derive(Debug, Clone, Eq, PartialEq)]
-pub struct TypeBind (pub Id, pub Type);
+pub struct TypeBind(pub Id, pub Type);
 
 impl GetWidth for TypeBind {
-    fn get_width(&self) -> Option<usize> {
+    fn get_width(&self) -> usize {
         self.1.get_width()
     }
 }
 
-
 pub type IsFlip = bool;
 
 pub type VecSize = usize;
-pub type SizeOpt = Option<usize>;
+// pub type SizeOpt = Option<usize>;
