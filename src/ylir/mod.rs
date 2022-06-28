@@ -1,6 +1,6 @@
 // use std::cell::RefCell;
 
-use std::ops::Neg;
+use std::{ops::Neg, collections::HashMap};
 
 use self::type_system::{Type, TypeBind};
 
@@ -25,7 +25,23 @@ pub struct Module {
     pub id: Id,
     // pub is_gen: bool,
     pub ports: Ports,
-    pub stmts: StmtGroup,
+
+    pub wire_defs: HashMap<Id, WireDef>,
+    pub reg_defs: HashMap<Id, RegDef>,
+    pub mem_defs: HashMap<Id, Mem>,
+
+    // inst id, module id,
+    pub module_insts: HashMap<Id, Id>,
+    pub connects: Vec<(Expr, Expr)>,
+
+    pub nodes: HashMap<Id, Expr>,
+    // pub whens: Vec<When>,
+}
+
+impl Module {
+    pub fn is_wire(&self, id: &Id) -> bool {
+        self.wire_defs.contains_key(id)
+    }
 }
 
 /*
@@ -94,20 +110,32 @@ pub struct Stmt {
 
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub enum RawStmt {
-    WireDef(TypeBind),
-    RegDef(TypeBind, Expr, Option<(Expr, Expr)>),
+    WireDef(WireDef),
+    RegDef(RegDef),
     MemDef(Mem),
     Inst(Id, Id),
     Node(Id, Expr),
     Connect(Expr, Expr),
     // PartialConnect(Expr, Expr),
-    When(Box<When>),
+    // When(Box<When>),
     StmtGroup(StmtGroup),
     // Printf(Printf),
     // Invalidate(Expr),
     // Stop(Stop),
     // Skip,
 }
+
+#[derive(Debug, Clone, Eq, PartialEq)]
+pub struct WireDef (pub TypeBind);
+
+#[derive(Debug, Clone, Eq, PartialEq)]
+pub struct RegDef {
+    pub bind: TypeBind,
+    pub clk: Expr,
+    // rst, value
+    pub reset: Option<(Expr, Expr)>
+}
+
 
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub enum Expr {

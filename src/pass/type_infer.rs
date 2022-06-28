@@ -17,7 +17,7 @@ pub enum NodeType {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
-pub struct ModuleEnv(pub HashMap<Id, (Dir, TypeBind)>);
+pub struct ModuleEnv(pub HashMap<Id, (Option<Dir>, TypeBind)>);
 
 pub trait TypeCheck<T> {
     type Target;
@@ -134,8 +134,13 @@ impl TypeCheck<(ModuleEnv, &GlobalEnv)> for Stmt {
         match &self.raw_stmt {
             RawStmt::Node(left, right) => {
                 let lt = env.0.get(left).unwrap();
-                let rt = env.0.get(left).unwrap(); // fixme
-
+                let rt = right.type_infer(&env);
+                if lt.0 != rt.0 {
+                    panic!("wire direction mismatch");
+                }
+                if lt.1.get_width() != rt.1.get_width() {
+                    panic!("wire width mismatch");
+                }
                 todo!()
             }
             RawStmt::Connect(a, b) => {

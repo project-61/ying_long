@@ -3,20 +3,20 @@ use std::fmt::format;
 
 use rayon::prelude::*;
 
-use super::type_infer::GlobalEnv;
+// use super::type_infer::GlobalEnv;
 use super::PurePass;
 use crate::ylir::type_system::*;
 use crate::ylir::*;
 
-// pub struct GenVerilog(pub GlobalEnv);
+pub struct GenVerilogEnv();
 
 pub trait GenVerilog {
-    fn gen_verilog(&self, env: &GlobalEnv) -> String;
+    fn gen_verilog(&self, env: &GenVerilogEnv) -> String;
 }
 
 impl GenVerilog for Circuit {
 
-    fn gen_verilog(&self, pm: &GlobalEnv) -> String {
+    fn gen_verilog(&self, pm: &GenVerilogEnv) -> String {
         self.modules
             .par_iter()
             .map(|i| i.gen_verilog(pm))
@@ -27,19 +27,40 @@ impl GenVerilog for Circuit {
 
 impl GenVerilog for Module {
 
-    fn gen_verilog(&self, pm: &GlobalEnv) -> String {
+    fn gen_verilog(&self, pm: &GenVerilogEnv) -> String {
+        let wire_bind = self.wire_defs.keys().map(|k|
+            if let Some(value) = self.nodes.get(k) {
+                format!("\tassign {} = {};\n", k, value.gen_verilog(pm))
+            } else {
+                "".to_string()
+            }
+        ).collect::<String>();
+
+        let reg_bind = self.wire_defs.keys().map(|k|
+            if let Some(value) = self.nodes.get(k) {
+                format!("\tassign {} = {};\n", k, value.gen_verilog(pm))
+            } else {
+                "".to_string()
+            }
+        ).collect::<String>();
+
+
         format!(
-            "module {} (\n{}\n\t);\n{}endmodule;",
+            "module {} (\n{}\n\t);\n{}\n{}\n{}\n{}\nendmodule;",
             self.id,
             self.ports.gen_verilog(pm),
-            self.stmts.gen_verilog(pm)
+            self.wire_defs.values().map(|x| x.gen_verilog(pm)).collect::<String>(),
+            self.reg_defs .values().map(|x| x.gen_verilog(pm)).collect::<String>(),
+            // self.mem_defs.iter().map(|x| x.gen_verilog(pm)).collect::<String>(),
+            wire_bind,
+            reg_bind
         )
     }
 }
 
 impl GenVerilog for Ports {
 
-    fn gen_verilog(&self, pm: &GlobalEnv) -> String {
+    fn gen_verilog(&self, pm: &GenVerilogEnv) -> String {
         self.par_iter()
             .map(|p| p.gen_verilog(pm))
             // .collect()
@@ -49,7 +70,7 @@ impl GenVerilog for Ports {
 }
 
 impl GenVerilog for Port {
-    fn gen_verilog(&self, env: &GlobalEnv) -> String {
+    fn gen_verilog(&self, env: &GenVerilogEnv) -> String {
         let dir = match self.dir {
             Dir::Input => "input",
             Dir::Output => "output",
@@ -60,14 +81,14 @@ impl GenVerilog for Port {
 }
 
 impl GenVerilog for StmtGroup {
-    fn gen_verilog(&self, pm: &GlobalEnv) -> String {
+    fn gen_verilog(&self, pm: &GenVerilogEnv) -> String {
         self.0.par_iter().map(|s| s.gen_verilog(pm)).collect()
         // .collect::<Vec<_>>().join("\n")
     }
 }
 
 impl GenVerilog for Stmt {
-    fn gen_verilog(&self, pm: &GlobalEnv) -> String {
+    fn gen_verilog(&self, pm: &GenVerilogEnv) -> String {
         format!(
             "{}\t{}\n",
             self.raw_stmt.gen_verilog(pm),
@@ -77,22 +98,22 @@ impl GenVerilog for Stmt {
 }
 
 impl GenVerilog for RawStmt {
-    fn gen_verilog(&self, pm: &GlobalEnv) -> String {
+    fn gen_verilog(&self, pm: &GenVerilogEnv) -> String {
         match self {
             RawStmt::WireDef(w) => w.gen_verilog(pm),
-            RawStmt::RegDef(bind, value, append) => todo!(),
-            RawStmt::MemDef(memdef) => todo!(),
+            RawStmt::RegDef(r) => r.gen_verilog(pm),
+            RawStmt::MemDef(m) => todo!(),
             RawStmt::Inst(name, value) => todo!(),
             RawStmt::Node(name, value) => format!("\tassign {} = {};", name, value.gen_verilog(pm)),
             RawStmt::Connect(a, b) => todo!(),
-            RawStmt::When(w) => w.gen_verilog(pm),
+            // RawStmt::When(w) => w.gen_verilog(pm),
             RawStmt::StmtGroup(sg) => sg.gen_verilog(pm),
         }
     }
 }
 
 impl GenVerilog for Expr {
-    fn gen_verilog(&self, pm: &GlobalEnv) -> String {
+    fn gen_verilog(&self, pm: &GenVerilogEnv) -> String {
         match self {
             Expr::Literal(literal) => todo!(),
             Expr::Ref(id) => id.clone(),
@@ -124,9 +145,9 @@ impl GenVerilog for Expr {
                 Primop::Neq => {
                     format!("{} != {}", params[0].gen_verilog(pm), params[1].gen_verilog(pm))
                 }
-                Primop::AsUInt => todo!(),
-                Primop::AsSInt => todo!(),
-                Primop::AsClock => todo!(),
+                Primop::AsUInt |
+                Primop::AsSInt |
+                Primop::AsClock => format!("{}", params[0].gen_verilog(pm)),
                 // Following four depend on the type system
                 Primop::Pad => todo!(),
                 Primop::Shl => todo!(), //format!("{} << {}", params[0].gen_verilog(pm), params[1].gen_verilog(pm)),
@@ -161,7 +182,7 @@ impl GenVerilog for Expr {
 }
 
 impl GenVerilog for When {
-    fn gen_verilog(&self, pm: &GlobalEnv) -> String {
+    fn gen_verilog(&self, pm: &GenVerilogEnv) -> String {
         if self.else_.is_none() {
             format!(
                 "\tif ({})\n\t\t{}\tend",
@@ -180,10 +201,10 @@ impl GenVerilog for When {
 }
 
 impl GenVerilog for TypeBind {
-    fn gen_verilog(&self, pm: &GlobalEnv) -> String {
+    fn gen_verilog(&self, _pm: &GenVerilogEnv) -> String {
         let size = self.1.get_width();
         if size == 0 {
-            println!("warning: width is 0");
+            println!("warning: width is 0"); // fixme: log
             return "".to_string();
         } else if size == 1 {
             format!("{}", self.0)
@@ -193,8 +214,33 @@ impl GenVerilog for TypeBind {
     }
 }
 
+impl GenVerilog for WireDef {
+    fn gen_verilog(&self, pm: &GenVerilogEnv) -> String {
+        format!("wire {};", self.0.gen_verilog(pm))
+    }
+}
+
+impl GenVerilog for RegDef {
+    fn gen_verilog(&self, pm: &GenVerilogEnv) -> String {
+        let rst = if let Some((rst, value)) = &self.reset {
+            format!("always @(posedge {}) begin if ({}) {} = {}; end",
+                self.clk.gen_verilog(pm),
+                rst.gen_verilog(pm),
+                self.bind.0,
+                value.gen_verilog(pm)
+            )
+        } else {
+            "".to_owned()
+        };
+        let mut r = format!("reg {};", self.bind.gen_verilog(pm));
+        r.push('\n');
+        r.push_str(&rst);
+        r
+    }
+}
+
 impl GenVerilog for PosInfoOpt {
-    fn gen_verilog(&self, pm: &GlobalEnv) -> String {
+    fn gen_verilog(&self, pm: &GenVerilogEnv) -> String {
         match self {
             PosInfoOpt::None => "".to_string(),
             PosInfoOpt::Some(pos) => pos.gen_verilog(pm),
@@ -203,7 +249,7 @@ impl GenVerilog for PosInfoOpt {
 }
 
 impl GenVerilog for PosInfo {
-    fn gen_verilog(&self, pm: &GlobalEnv) -> String {
+    fn gen_verilog(&self, pm: &GenVerilogEnv) -> String {
         // fixme
         format!("@[\"{}\":{:?}:{:?}]", self.file, self.line, self.col)
     }
