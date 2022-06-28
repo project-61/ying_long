@@ -1,7 +1,7 @@
 
 
 build:
-	verilator -Wall --cc --exe --build --trace ./main.cpp ./top.v ./add.v
+	verilator -Wall --cc --exe --build --trace -Wno-DECLFILENAME ./main.cpp ./top.v
 
 run: build
 	./obj_dir/Vtop
