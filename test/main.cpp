@@ -1,9 +1,6 @@
 #include <iostream>
 
-#include "./Vadd_demo.h"
-
-
-#include "Vadd.h"
+#include "Vtop.h"
 #include "verilated.h"
 #include "verilated_vcd_c.h"
 
@@ -13,7 +10,7 @@ int main(int argc, char** argv, char** env) {
     printf("running\n");
     VerilatedContext* contextp = new VerilatedContext;
     contextp->commandArgs(argc, argv);
-    Vadd* adder = new Vadd{contextp};
+    Vtop* top = new Vtop{contextp};
 
     Verilated::traceEverOn(true);
     // VerilatedVcdC* tfp = new VerilatedVcdC;
@@ -25,11 +22,11 @@ int main(int argc, char** argv, char** env) {
         contextp->timeInc(1);
         int a = rand() & 5;
         int b = rand() & 5;
-        adder->a = a;
-        adder->b = b;
-        adder->eval();
+        top->a = a;
+        top->b = b;
+        top->eval();
 
-        cout << "a: " << adder->a << ", b: " << adder->b << ", c: " << adder->c << endl;
+        cout << "a: " << top->a << ", b: " << top->b << ", c: " << top->c << endl;
         // tfp->dump(contextp->time());
     }
     // tfp->close();
