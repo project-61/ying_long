@@ -28,9 +28,9 @@ impl GenVerilog for Circuit {
 impl GenVerilog for Module {
 
     fn gen_verilog(&self, pm: &GenVerilogEnv) -> String {
-        let wire_bind = self.wire_defs.keys().map(|k|
-            if let Some(value) = self.nodes.get(k) {
-                format!("\tassign {} = {};\n", k, value.gen_verilog(pm))
+        let wire_bind = self.nodes.iter().map(|(k, v)|
+            if self.is_wire(k) {
+                format!("\tassign {} = {};\n", k, v.gen_verilog(pm))
             } else {
                 "".to_string()
             }
@@ -44,16 +44,25 @@ impl GenVerilog for Module {
             }
         ).collect::<String>();
 
+        let inst_bind =
+            self.module_insts.values().map(|inst|
+                format!("{} {} ({});\n",
+                    inst.module_id,
+                    inst.id,
+                    inst.connects.iter().map(|(k, v)| format!(".{} ({})", k, v.gen_verilog(pm))).collect::<Vec<_>>().join(",")
+                )
+            ).collect::<String>();
 
         format!(
-            "module {} (\n{}\n\t);\n{}\n{}\n{}\n{}\nendmodule;",
+            "module {} (\n{}\n\t);\n{}\n{}\n{}\n{}\n{}\nendmodule;",
             self.id,
             self.ports.gen_verilog(pm),
             self.wire_defs.values().map(|x| x.gen_verilog(pm)).collect::<String>(),
             self.reg_defs .values().map(|x| x.gen_verilog(pm)).collect::<String>(),
             // self.mem_defs.iter().map(|x| x.gen_verilog(pm)).collect::<String>(),
             wire_bind,
-            reg_bind
+            reg_bind,
+            inst_bind
         )
     }
 }
@@ -209,7 +218,7 @@ impl GenVerilog for TypeBind {
         } else if size == 1 {
             format!("{}", self.0)
         } else {
-            format!("[{}:0]\t{}", size, self.0)
+            format!("[{}-1:0]\t{}", size, self.0)
         }
     }
 }

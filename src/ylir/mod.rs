@@ -31,8 +31,8 @@ pub struct Module {
     pub mem_defs: HashMap<Id, Mem>,
 
     // inst id, module id,
-    pub module_insts: HashMap<Id, Id>,
-    pub connects: Vec<(Expr, Expr)>,
+    pub module_insts: HashMap<Id, InstDef>,
+    // pub connects: Vec<(Expr, Expr)>,
 
     pub nodes: HashMap<Id, Expr>,
     // pub whens: Vec<When>,
@@ -40,7 +40,7 @@ pub struct Module {
 
 impl Module {
     pub fn is_wire(&self, id: &Id) -> bool {
-        self.wire_defs.contains_key(id)
+        self.wire_defs.contains_key(id) || self.ports.iter().any(|x| &x.bind.0 == id)
     }
 }
 
@@ -123,6 +123,13 @@ pub enum RawStmt {
     // Invalidate(Expr),
     // Stop(Stop),
     // Skip,
+}
+
+#[derive(Debug, Clone, Eq, PartialEq)]
+pub struct InstDef {
+    pub id: Id,
+    pub module_id: Id,
+    pub connects: HashMap<Id, Expr>,
 }
 
 #[derive(Debug, Clone, Eq, PartialEq)]
