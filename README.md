@@ -25,3 +25,69 @@ YingLong计划诞生了。
 ### 设计
 
 使用形式验证作为电路设计验证手段之一，此外还有测试框架和仿真调试。
+
+### DataType
+
++ Type
+  + Integer
+    + Sint(length)
+    + Uint(length)
+  + Clock
+  + Vector(Type, length)
+  + Bundle(Map[str, Type])
+
+### Circuit Node Type
+
++ Wire(Type)
++ Reg(Type, Clock, Reset)
+  + Reset(Option[Tuple[Expr, Expr]])
++ Mem(Type, length, Clock, )
++ Port
+  + Input(Type)
+  + Output(Type)
+
++ Module(name: Id, port/wire/mem, statements: list[Stmt])
+  + PortDefs(list[Port])
+  + WireDefs(list[Wire])
+  + RegDefs(list[Reg])
+  + MemDefs(list[Mem])
+  + Stmt
+    + Bind(name: Id, value: Expr)
+    + When(cond: Expr, then: Stmt, else_: Option[Else])
+      + Else(Expr)
+
++ Expr
+  + Id(str)
+  + Literal(Union[int, str, float])
+  + Mux(cond: Expr, then: Expr, else: Expr)
+  + Operator(Op, list[Expr])
+
++ Op
+  + Add
+  + Sub
+  + Mul
+  + Div
+  + Mod
+  + Lt
+  + Leq
+  + Gt
+  + Geq
+  + Eq
+  + Neq
+  + Pad
+  + AsUInt
+  + AsSInt
+  + AsClock
+  + Shl
+  + Shr
+  + Cvt
+  + Neg
+  + Not
+  + And
+  + Or
+  + Xor
+  + AndReduce
+  + OrReduce
+  + XorReduce
+  + Cat
+  + Bits
